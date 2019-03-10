@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+import json
 import time
+import re
 
 
 # Function importing Dataset
@@ -41,22 +43,22 @@ def preprocessing(training_data):
     return essay
 
 def create_essay_chunks(list_of_essays):
-    list_of_essays_with_chunks = list()
+    essay_counter = 1;
+    dict_of_essays_with_chunks = dict()
+    list_of_essays.pop(0)
     for essay in list_of_essays:
         list_of_chunks = list()
         list_of_sentences = essay.split(". ")
         for sentence in list_of_sentences:
             clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
             list_of_chunks.append(clean_sentence)
-            # print(list_of_chunks)
-        list_of_essays_with_chunks.append(list_of_chunks)
-    return list_of_essays_with_chunks
+        dict_of_essays_with_chunks[essay_counter] = list_of_chunks
+        essay_counter += 1
+    return dict_of_essays_with_chunks
 
-def write_chunked_essay_to_file(list_of_essays_with_chunks):
-    wf = open("list_of_chunked_essays.txt", "w")
-    for essay in list_of_essays_with_chunks:
-        for list_of_chunks in essay:
-            wf.write(list_of_chunks + "\n")
+def write_chunked_essay_to_file(dict_of_essays_with_chunks):
+    wf = open("dict_of_chunked_essays.txt", "w")
+    wf.write(str(dict_of_essays_with_chunks))
 
 
 if __name__ == '__main__':
@@ -64,10 +66,7 @@ if __name__ == '__main__':
     training_data = importdata()
     # print(training_data[1,0:])
     list_of_essays = preprocessing(training_data)
-    list_of_essays_with_chunks = create_essay_chunks(list_of_essays)
-    # write_chunked_essay_to_file(list_of_essays_with_chunks)
+    dict_of_essays_with_chunks = create_essay_chunks(list_of_essays)
+    write_chunked_essay_to_file(dict_of_essays_with_chunks)
     end_time = time.time()
     print("time",end_time - start_time)
-
-
-
