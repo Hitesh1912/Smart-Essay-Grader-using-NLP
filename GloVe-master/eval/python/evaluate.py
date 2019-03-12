@@ -58,11 +58,14 @@ def evaluate_vectors(W, vocab, ivocab):
 
     for i in range(len(filenames)):
         with open('%s/%s' % (prefix, filenames[i]), 'r') as f:
+            # print('%s/%s' % (prefix, filenames[i]))
             full_data = [line.rstrip().split(' ') for line in f]
             full_count += len(full_data)
-            data = [x for x in full_data if all(word in vocab for word in x)]
 
+            data = [x for x in full_data if all(word in vocab for word in x)]
+        print("bro")
         indices = np.array([[vocab[word] for word in row] for row in data])
+        print(indices)
         ind1, ind2, ind3, ind4 = indices.T
 
         predictions = np.zeros((len(indices),))
