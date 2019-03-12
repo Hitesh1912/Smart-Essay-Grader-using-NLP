@@ -3,6 +3,8 @@ import pandas as pd
 import json
 import time
 import re
+from sklearn import preprocessing
+
 
 
 # Function importing Dataset
@@ -16,12 +18,12 @@ def importdata():
 
 
 # Function to split the dataset
-# def splitdataset(data):
-#     # Seperating the target variable
-#     x = data[:, i:j]
-#     y = data[:, 0]
-#     # print(np.shape(x), np.shape(y))
-#     return x, y
+def splitdataset(data):
+    # Seperating the target variable
+    x = data[1:, 0:3]
+    y = data[1:, 3:np.shape(data)[1]]
+    print(np.shape(x), np.shape(y))
+    return x, y
 
 def feature_normalization(x):
     mu = np.mean(x,axis=0)
@@ -33,7 +35,7 @@ def normalization(x,mu,sigma):
     x = np.divide(x, sigma)
     return x
 
-def preprocessing(training_data):
+def preprocess_data(training_data):
     #split data till essay column
     # data = splitdataset(training_data)
     essay = []
@@ -43,7 +45,7 @@ def preprocessing(training_data):
     return essay
 
 def create_essay_chunks(list_of_essays):
-    essay_counter = 1;
+    essay_counter = 1
     dict_of_essays_with_chunks = dict()
     list_of_essays.pop(0)
     for essay in list_of_essays:
@@ -64,9 +66,16 @@ def write_chunked_essay_to_file(dict_of_essays_with_chunks):
 if __name__ == '__main__':
     start_time = time.time()
     training_data = importdata()
+    X_train, y_train = splitdataset(training_data)
+
+    #normalize all the scores in y_train
+    normalizer = preprocessing.StandardScaler()
+    normalized_score = normalizer.fit_transform(y_train)
+
     # print(training_data[1,0:])
-    list_of_essays = preprocessing(training_data)
+    list_of_essays = preprocess_data(training_data)
     dict_of_essays_with_chunks = create_essay_chunks(list_of_essays)
     write_chunked_essay_to_file(dict_of_essays_with_chunks)
+
     end_time = time.time()
     print("time",end_time - start_time)
