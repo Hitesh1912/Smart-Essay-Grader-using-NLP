@@ -112,7 +112,7 @@ def run_lstm(data,num_words,embedding_matrix):
     model.add(Bidirectional(CuDNNLSTM(64, return_sequences=True)))
     model.add(Bidirectional(CuDNNLSTM(32)))
     model.add(Dropout(0.25))
-    model.add(Dense(units=5, activation='softmax'))
+    model.add(Dense(units=5, activation='softmax')) #
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     print(model.summary())
 
