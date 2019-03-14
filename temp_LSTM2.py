@@ -7,6 +7,7 @@ from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
 from keras.layers import Bidirectional,CuDNNLSTM
 from keras.initializers import Constant
+from utilities import  *
 
 import nltk
 import string
@@ -14,6 +15,15 @@ import numpy as np
 import pandas as pd
 from nltk.corpus import stopwords
 import re
+from keras.optimizers import Adam
+
+
+
+
+#constants:
+embedding_dim = 200 # Len of vectors
+max_features = 20000 # this is the number of words we care about
+
 
 
 
@@ -21,7 +31,7 @@ import re
 def importdata():
     # train_data = pd.read_csv(
     #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
-    data = pd.read_table('word_embedding_data', header=None, sep = " ")
+    data = pd.read_table('vectors.txt', header=None, sep = " ")
     # print(data.head())
     print(data.shape)
     return data.values
@@ -79,65 +89,74 @@ def clean_text(text):
 
 
 def run_lstm(data,num_words,embedding_matrix):
-    embedding_dim = 50 # len of vectors
-    max_features = 2000
     sequence_length = 52
+    y = 0.6
 
     ## Network architecture
     labels = np.random.randint(0,1,size=(np.shape(data)[0],1))
 
     model = Sequential()
-    # model.add(Embedding(20000, 100, input_length=50))
-    #
-    #
-    #
     # model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    # # model.add(Bidirectional(LSTM(20, return_sequences=True), input_shape=(n_timesteps, 1)))
-    #
     # model.add(Dense(1, activation='sigmoid'))
-    # # model.add(TimeDistributed(Dense(1, activation='sigmoid')))
-    #
     # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     # model.summary()
-    # ## Fit the model
-    # model.fit(data, np.array(labels), validation_split=0.4, epochs=3)
 
     model.add(Embedding(num_words,
                         embedding_dim,
                         embeddings_initializer=Constant(embedding_matrix),
                         input_length=sequence_length,
                         trainable=True))
+    # model.add(SpatialDropout1D(0.2))
+    # model.add(Bidirectional(CuDNNLSTM(200, return_sequences=True)))
+    # model.add(Bidirectional(CuDNNLSTM(32)))
+    # model.add(Dropout(0.25))
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
-    model.add(SpatialDropout1D(0.2))
-    model.add(Bidirectional(CuDNNLSTM(64, return_sequences=True)))
-    model.add(Bidirectional(CuDNNLSTM(32)))
-    model.add(Dropout(0.25))
-    model.add(Dense(units=5, activation='softmax')) #
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    print(model.summary())
+    # ADD THE LSTM HIDDEN LAYER AS INPUT
+    model.add(Dense(200, input_dim=200, activation='relu'))  # FF hidden layer
+    model.add(Dense(1, activation='sigmoid'))  # output layer
 
-    # model.evaluate(data,labels)
+    # Compile model
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
 
-    # batch_size = 128
-    model.fit(data, labels, epochs=5, verbose=1, validation_split=0.1)
+    # Fit the model
+    model.fit(embedding_matrix, y, epochs=100, batch_size=50)
+    print("training complete...")
 
-    model.predict(data)
+    #
+    # # calculate predictions
+    # predictions = model.predict(X)
+    # # round predictions
+    # rounded = [round(x[0]) for x in predictions]
+    # print(rounded)
+    # # print("MSE",mean_squared_error(y,rounded))
+    #
+    # print("train accuracy", accuracy_val(y, rounded))
+    #
+    # # calculate predictions
+    # predictions_t = model.predict(X_test)
+    # # round predictions
+    # rounded_t = [round(x[0]) for x in predictions_t]
+    # print(rounded_t)
+    # # print("MSE",mean_squared_error(y,rounded))
+    # print("test accuracy", accuracy_val(y_test, rounded_t))
+
+    # model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
+    # print(model.summary())
+    #
+    # # model.evaluate(data,labels)
+    #
+    # # batch_size = 128
+    # model.fit(data, labels, epochs=5, verbose=1, validation_split=0.1)
+    #
+    # model.predict(data)
     # train LSTM
 
 
 
 def word_tokenize(data):
-    max_features = 20000  # this is the number of words we care about
     sequence_length = 52
-
-
-    # Create sequence
-    # vocabulary_size = 20000
-    # tokenizer = Tokenizer(num_words= vocabulary_size)
-    # tokenizer.fit_on_texts(parsed_text)
-    # sequences = tokenizer.texts_to_sequences(parsed_text)
-    # data = pad_sequences(sequences, maxlen=50)
-
 
     tokenizer = Tokenizer(num_words=max_features, split=' ', oov_token='<unw>', filters=' ')
     tokenizer.fit_on_texts(data)
@@ -154,10 +173,9 @@ def word_tokenize(data):
     return X, tokenizer
 
 def create_embedding_matrix(word_index,embeddings_index):
-    num_words = min(max_features, len(word_index)) + 1
-    print(num_words)
-
-    embedding_dim = 50
+    # num_words = min(max_features, len(word_index)) + 1
+    # print(num_words)
+    embedding_dim = 200
 
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((num_words, embedding_dim))
@@ -172,22 +190,24 @@ def create_embedding_matrix(word_index,embeddings_index):
             embedding_matrix[i] = embedding_vector
         else:
             # doesn't exist, assign a random vector
-            embedding_matrix[i] = np.random.randn(embedding_dim)
+            embedding_matrix[i] = embeddings_index.get('<unk>')
 
     return embedding_matrix
 
 
 if __name__ == '__main__':
 
-    text = "Dear local newspaper, I think effects computers have on people are great learning skills/affects because they give us time to chat with friends/new people, helps us learn about the globe(astronomy) and keeps us out of troble! Thing about! Dont you think so? How would you feel if your teenager is always on the phone with friends! Do you ever time to chat with your friends or buisness partner about things. Well now - there's a new way to chat the computer, theirs plenty of sites on the internet to do so: @ORGANIZATION1, @ORGANIZATION2, @CAPS1, facebook, myspace ect. Just think now while your setting up meeting with your boss on the computer, your teenager is having fun on the phone not rushing to get off cause you want to use it. How did you learn about other countrys/states outside of yours? Well I have by computer/internet, it's a new way to learn about what going on in our time! You might think your child spends a lot of time on the computer, but ask them so question about the economy, sea floor spreading or even about the @DATE1's you'll be surprise at how much he/she knows. Believe it or not the computer is much interesting then in class all day reading out of books. If your child is home on your computer or at a local library, it's better than being out with friends being fresh, or being perpressured to doing something they know isnt right. You might not know where your child is, @CAPS2 forbidde in a hospital bed because of a drive-by. Rather than your child on the computer learning, chatting or just playing games, safe and sound in your home or community place. Now I hope you have reached a point to understand and agree with me, because computers can have great effects on you or child because it gives us time to chat with friends/new people, helps us learn about the globe and believe or not keeps us out of troble. Thank you for listenin"
+    # text = "Dear local newspaper, I think effects computers have on people are great learning skills/affects because they give us time to chat with friends/new people, helps us learn about the globe(astronomy) and keeps us out of troble! Thing about! Dont you think so? How would you feel if your teenager is always on the phone with friends! Do you ever time to chat with your friends or buisness partner about things. Well now - there's a new way to chat the computer, theirs plenty of sites on the internet to do so: @ORGANIZATION1, @ORGANIZATION2, @CAPS1, facebook, myspace ect. Just think now while your setting up meeting with your boss on the computer, your teenager is having fun on the phone not rushing to get off cause you want to use it. How did you learn about other countrys/states outside of yours? Well I have by computer/internet, it's a new way to learn about what going on in our time! You might think your child spends a lot of time on the computer, but ask them so question about the economy, sea floor spreading or even about the @DATE1's you'll be surprise at how much he/she knows. Believe it or not the computer is much interesting then in class all day reading out of books. If your child is home on your computer or at a local library, it's better than being out with friends being fresh, or being perpressured to doing something they know isnt right. You might not know where your child is, @CAPS2 forbidde in a hospital bed because of a drive-by. Rather than your child on the computer learning, chatting or just playing games, safe and sound in your home or community place. Now I hope you have reached a point to understand and agree with me, because computers can have great effects on you or child because it gives us time to chat with friends/new people, helps us learn about the globe and believe or not keeps us out of troble. Thank you for listenin"
+
+    data = open('dict_of_chunked_essays.txt', 'r').read()
+    data = eval(data)
+    text = data[1][0]
+    print(text)
     parsed_text = clean_text(text)
 
     data, tokenizer = word_tokenize(parsed_text)
-
     print("data",np.shape(data))
 
-    embedding_dim = 50
-    max_features = 20000
     num_words = len(data)
     word2vec_data = importdata()
     # embedding_matrix = word2vec_data[:, 1:np.shape(word2vec_data)[1]]
@@ -195,16 +215,16 @@ if __name__ == '__main__':
     for row in word2vec_data:
         embedding_index[row[0]] = row[1:]
 
-    # print("embedding index",embedding_index)
+    print("embedding index",np.shape(embedding_index))
 
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
     num_words = min(max_features, len(word_index)) + 1
-    # print(num_words)
+    print(num_words)
 
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
 
-    # print(np.shape(embedding_matrix))  #31 x 50
+    print(np.shape(embedding_matrix))  #31 x 200
 
     run_lstm(data,num_words,embedding_matrix)

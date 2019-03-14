@@ -50,7 +50,7 @@ def run_model(X,y,X_test,y_test):
     model.add(Dense(1, activation='sigmoid')) #output layer
 
     # Compile model
-    model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy']) # learning rate
 
     # model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
     # Fit the model
