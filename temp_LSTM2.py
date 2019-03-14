@@ -7,16 +7,9 @@ from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
 from keras.layers import Bidirectional,CuDNNLSTM
 from keras.initializers import Constant
-from utilities import  *
-
-import nltk
-import string
-import numpy as np
-import pandas as pd
-from nltk.corpus import stopwords
-import re
 from keras.optimizers import Adam
-
+from utilities import  *
+from preprocessing import clean_text
 
 
 
@@ -37,70 +30,20 @@ def importdata():
     return data.values
 
 
-def clean_text(text):
-    ## Remove puncuation
-    text = text.translate(string.punctuation)
 
-    ## Convert words to lower case and split them
-    text = text.lower().split()
-
-    ## Remove stop words
-    stops = set(stopwords.words("english"))
-    text = [w for w in text if not w in stops and len(w) >= 3]
-
-    text = " ".join(text)
-    ## Clean the text
-    text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
-    text = re.sub(r"what's", "what is ", text)
-    text = re.sub(r"\'s", " ", text)
-    text = re.sub(r"\'ve", " have ", text)
-    text = re.sub(r"n't", " not ", text)
-    text = re.sub(r"i'm", "i am ", text)
-    text = re.sub(r"\'re", " are ", text)
-    text = re.sub(r"\'d", " would ", text)
-    text = re.sub(r"\'ll", " will ", text)
-    text = re.sub(r",", " ", text)
-    text = re.sub(r"\.", " ", text)
-    text = re.sub(r"!", " ! ", text)
-    text = re.sub(r"\/", " ", text)
-    text = re.sub(r"\^", " ^ ", text)
-    text = re.sub(r"\+", " + ", text)
-    text = re.sub(r"\-", " - ", text)
-    text = re.sub(r"\=", " = ", text)
-    text = re.sub(r"'", " ", text)
-    text = re.sub(r"(\d+)(k)", r"\g<1>000", text)
-    text = re.sub(r":", " : ", text)
-    text = re.sub(r" e g ", " eg ", text)
-    text = re.sub(r" b g ", " bg ", text)
-    text = re.sub(r" u s ", " american ", text)
-    text = re.sub(r"\0s", "0", text)
-    text = re.sub(r" 9 11 ", "911", text)
-    text = re.sub(r"e - mail", "email", text)
-    text = re.sub(r"j k", "jk", text)
-    text = re.sub(r"\s{2,}", " ", text)
-    ## Stemming
-    text = text.split()
-    stemmer = nltk.SnowballStemmer('english')
-    stemmed_words = [stemmer.stem(word) for word in text]
-    text = " ".join(stemmed_words)
-
-    return text
-
+def mean_squared_error(actual, predicted):
+    mse = (np.square(np.array(actual) - np.array(predicted))).mean()
+    return mse
 
 
 def run_lstm(data,num_words,embedding_matrix):
-    sequence_length = 52
-    y = 0.6
+    sequence_length = 40
+    y = np.ones((1,1)) * 0.6
 
     ## Network architecture
     labels = np.random.randint(0,1,size=(np.shape(data)[0],1))
 
     model = Sequential()
-    # model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    # model.add(Dense(1, activation='sigmoid'))
-    # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    # model.summary()
-
     model.add(Embedding(num_words,
                         embedding_dim,
                         embeddings_initializer=Constant(embedding_matrix),
@@ -111,6 +54,7 @@ def run_lstm(data,num_words,embedding_matrix):
     # model.add(Bidirectional(CuDNNLSTM(32)))
     # model.add(Dropout(0.25))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Flatten())
     model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
     # ADD THE LSTM HIDDEN LAYER AS INPUT
@@ -121,16 +65,16 @@ def run_lstm(data,num_words,embedding_matrix):
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
 
     # Fit the model
-    model.fit(embedding_matrix, y, epochs=100, batch_size=50)
+    model.fit(data, y, epochs=100, batch_size=50)
     print("training complete...")
 
     #
-    # # calculate predictions
-    # predictions = model.predict(X)
-    # # round predictions
+    # calculate predictions
+    predictions = model.predict(data)
+    # round predictions
     # rounded = [round(x[0]) for x in predictions]
     # print(rounded)
-    # # print("MSE",mean_squared_error(y,rounded))
+    print("MSE",mean_squared_error(y,predictions))
     #
     # print("train accuracy", accuracy_val(y, rounded))
     #
@@ -156,26 +100,28 @@ def run_lstm(data,num_words,embedding_matrix):
 
 
 def word_tokenize(data):
-    sequence_length = 52
-
-    tokenizer = Tokenizer(num_words=max_features, split=' ', oov_token='<unw>', filters=' ')
+    # tokenizer = Tokenizer(num_words=237, split=' ', oov_token='<unw>', filters=' ')
+    data = data.split(" ")
+    sequence_length = 1  # testing for 1 sentence
+    tokenizer = Tokenizer()
     tokenizer.fit_on_texts(data)
 
     # this takes our sentences and replaces each word with an integer
     X = tokenizer.texts_to_sequences(data)
-
+    # print(tokenizer.sequences_to_texts(X))
     # we then pad the sequences so they're all the same length (sequence_length)
-    X = pad_sequences(X, sequence_length)
+    X = pad_sequences(X, sequence_length)  #check
 
     # lets keep a couple of thousand samples back as a test set
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
     # print("test set size " + str(len(X_test)))
     return X, tokenizer
 
+
+
 def create_embedding_matrix(word_index,embeddings_index):
-    # num_words = min(max_features, len(word_index)) + 1
+    num_words = min(max_features, len(word_index)) + 1
     # print(num_words)
-    embedding_dim = 200
 
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((num_words, embedding_dim))
@@ -199,32 +145,33 @@ if __name__ == '__main__':
 
     # text = "Dear local newspaper, I think effects computers have on people are great learning skills/affects because they give us time to chat with friends/new people, helps us learn about the globe(astronomy) and keeps us out of troble! Thing about! Dont you think so? How would you feel if your teenager is always on the phone with friends! Do you ever time to chat with your friends or buisness partner about things. Well now - there's a new way to chat the computer, theirs plenty of sites on the internet to do so: @ORGANIZATION1, @ORGANIZATION2, @CAPS1, facebook, myspace ect. Just think now while your setting up meeting with your boss on the computer, your teenager is having fun on the phone not rushing to get off cause you want to use it. How did you learn about other countrys/states outside of yours? Well I have by computer/internet, it's a new way to learn about what going on in our time! You might think your child spends a lot of time on the computer, but ask them so question about the economy, sea floor spreading or even about the @DATE1's you'll be surprise at how much he/she knows. Believe it or not the computer is much interesting then in class all day reading out of books. If your child is home on your computer or at a local library, it's better than being out with friends being fresh, or being perpressured to doing something they know isnt right. You might not know where your child is, @CAPS2 forbidde in a hospital bed because of a drive-by. Rather than your child on the computer learning, chatting or just playing games, safe and sound in your home or community place. Now I hope you have reached a point to understand and agree with me, because computers can have great effects on you or child because it gives us time to chat with friends/new people, helps us learn about the globe and believe or not keeps us out of troble. Thank you for listenin"
 
-    data = open('dict_of_chunked_essays.txt', 'r').read()
-    data = eval(data)
-    text = data[1][0]
-    print(text)
-    parsed_text = clean_text(text)
-
+    training_data = open('dict_of_chunked_essays.txt', 'r').read()
+    text_data = eval(training_data)
+    text = text_data[1][0]
+    # print(text)
+    parsed_text = clean_text(text)   # calling from preprocessing.py
     data, tokenizer = word_tokenize(parsed_text)
+    print(data)
     print("data",np.shape(data))
+    #
+    # num_words = len(data)
+    word2vec_data = importdata()  #read vector.txt
 
-    num_words = len(data)
-    word2vec_data = importdata()
-    # embedding_matrix = word2vec_data[:, 1:np.shape(word2vec_data)[1]]
     embedding_index = {}
     for row in word2vec_data:
         embedding_index[row[0]] = row[1:]
 
-    print("embedding index",np.shape(embedding_index))
-
+    print("embedding index",len(embedding_index))
+    #
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
     num_words = min(max_features, len(word_index)) + 1
     print(num_words)
-
+    # #
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
-
+    #
     print(np.shape(embedding_matrix))  #31 x 200
-
+    # #
+    data = data.T # 1x 40
     run_lstm(data,num_words,embedding_matrix)
