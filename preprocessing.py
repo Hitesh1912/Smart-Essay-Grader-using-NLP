@@ -8,13 +8,11 @@ import time
 from sklearn import preprocessing
 
 
-
-
 # Function importing Dataset
 def importdata():
     # train_data = pd.read_csv(
     #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
-    data = pd.read_table('training_set_rel3.tsv', header=None, sep = "\t+")
+    data = pd.read_table('training_set_rel3.tsv', header=None, sep = "\t+", encoding='iso-8859-1')
     # print(data.head())
     print(data.shape)
     return data.values
@@ -28,15 +26,18 @@ def splitdataset(data):
     print(np.shape(x), np.shape(y))
     return x, y
 
+
 def feature_normalization(x):
     mu = np.mean(x,axis=0)
     sigma = np.std(x,axis=0)
     return mu, sigma
 
+
 def normalization(x,mu,sigma):
     x = np.subtract(x, mu)
     x = np.divide(x, sigma)
     return x
+
 
 def preprocess_data(training_data):
     dict_of_scores = dict()
@@ -48,6 +49,7 @@ def preprocess_data(training_data):
         # print(row[2])
     return essay
 
+
 def create_essay_chunks(list_of_essays):
     essay_counter = 1
     dict_of_essays = dict()
@@ -58,17 +60,20 @@ def create_essay_chunks(list_of_essays):
         list_of_chunks = list()
         list_of_sentences = essay.split(". ")
         for sentence in list_of_sentences:
-            clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
+            # clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
+            clean_sentence = clean_text(sentence)
             list_of_chunks.append(clean_sentence)
         dict_of_essays_with_chunks[essay_counter] = list_of_chunks
         essay_counter += 1
     return dict_of_essays_with_chunks, dict_of_essays
+
 
 def create_list_of_scores(y_train):
     list_of_scores = list()
     for row in y_train:
         list_of_scores.append(row[2])
     return list_of_scores
+
 
 def create_dict_of_essays(x_train):
     counter = 1
@@ -81,30 +86,33 @@ def create_dict_of_essays(x_train):
 
 
 def write_chunked_essay_to_file(dict_of_essays_with_chunks):
-    wf = open("dict_of_chunked_essays2.txt", "w")
+    wf = open("dict_of_chunked_essays2.txt", "w", encoding='iso-8859-1')
     wf.write(str(dict_of_essays_with_chunks))
 
+
 def write_scorelist_to_file(list_of_scores):
-    wf = open("list_of_scores.txt", "w")
+    wf = open("list_of_scores2.txt", "w", encoding='iso-8859-1')
     wf.write(str(list_of_scores))
 
+
 def write_essaydict_to_file(dict_of_essays):
-    wf = open("dict_of_essays.txt", "w")
+    wf = open("dict_of_essays2.txt", "w", encoding='iso-8859-1')
     wf.write(str(dict_of_essays))
 
+
 def clean_text(text):
-    ## Remove puncuation
+    # Remove puncuation
     text = text.translate(string.punctuation)
 
-    ## Convert words to lower case and split them
+    # Convert words to lower case and split them
     text = text.lower().split()
 
-    ## Remove stop words
+    # Remove stop words
     stops = set(stopwords.words("english"))
     text = [w for w in text if not w in stops and len(w) >= 3]
 
     text = " ".join(text)
-    ## Clean the text
+    # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
     text = re.sub(r"\'s", " ", text)
@@ -114,6 +122,12 @@ def clean_text(text):
     text = re.sub(r"\'re", " are ", text)
     text = re.sub(r"\'d", " would ", text)
     text = re.sub(r"\'ll", " will ", text)
+    text = re.sub(r"@ORGANIZATION[0-9]", "organization", text)
+    text = re.sub(r"@CAPS[0-9]", "name", text)
+    text = re.sub(r"@NUM[0-9]", "number", text)
+    text = re.sub(r"@LOCATION[0-9]", "location", text)
+    text = re.sub(r"@DATE[0-9]", "date", text)
+    text = re.sub(r"[0-9]", "", text)
     text = re.sub(r",", " ", text)
     text = re.sub(r"\.", " ", text)
     text = re.sub(r"!", " ! ", text)
@@ -138,11 +152,6 @@ def clean_text(text):
     text = text.replace(":", "")
     text = text.replace(";", "")
     text = text.replace(".", "")
-    ## Stemming
-    # text = text.split()
-    # stemmer = nltk.SnowballStemmer('english')
-    # stemmed_words = [stemmer.stem(word) for word in text]
-    # text = " ".join(stemmed_words)
 
     return text
 
@@ -156,15 +165,15 @@ if __name__ == '__main__':
     scaler = preprocessing.MinMaxScaler()
     normalizer = scaler.fit(y_train)
     normalized_score = scaler.transform(y_train)
-    #normalize all the scores in y_train
+    # normalize all the scores in y_train
     # normalizer = preprocessing.StandardScaler()
     # normalized_score = normalizer.fit_transform(y_train)
 
     essays = x_train[:, 2]
-
     # print(essays[:3])
     counter = 1
     processed_essays = []
+
     for essay in essays:
         processed_essays.append(clean_text(essay))
 
@@ -172,14 +181,12 @@ if __name__ == '__main__':
         dict_of_essays[counter] = essay
         counter = counter + 1
 
-
-    # list_of_essays = preprocess_data(training_data)
-    # print(list_of_essays, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-    # dict_of_essays_with_chunks, dict_of_essays = create_essay_chunks(list_of_essays)
+    list_of_essays = preprocess_data(training_data)
+    dict_of_essays_with_chunks, dict_of_essays = create_essay_chunks(list_of_essays)
     list_of_scores = create_list_of_scores(normalized_score)
     # dict_of_essays = create_dict_of_essays(x_train)
     # print(dict_of_essays)
-    # write_chunked_essay_to_file(dict_of_essays_with_chunks)
+    write_chunked_essay_to_file(dict_of_essays_with_chunks)
     # write_scorelist_to_file(list_of_scores)
     write_essaydict_to_file(dict_of_essays)
     end_time = time.time()
