@@ -87,6 +87,7 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # rounded = [round(x[0]) for x in predictions]
     print(np.shape(predictions))
     print(predictions)
+    print(y_test)
     print("MSE", mean_squared_error(y_test, predictions))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
 
