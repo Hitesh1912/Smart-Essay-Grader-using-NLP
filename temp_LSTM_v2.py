@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, LSTM, Conv1D, MaxPooling1D, Dropout, Activation,SpatialDropout1D
+from keras.layers import Dense, Flatten, LSTM,Lambda
 from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
 from keras.layers import Bidirectional,CuDNNLSTM
@@ -65,7 +65,8 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # model.add(Dropout(0.25))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Flatten())
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 200)))
+    # model.add(Flatten())
     # model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
     # ADD THE LSTM HIDDEN LAYER AS INPUT
