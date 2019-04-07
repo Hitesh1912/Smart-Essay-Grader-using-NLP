@@ -151,7 +151,7 @@ def create_embedding_matrix(word_index,embeddings_index):
 if __name__ == '__main__':
 
     # text = "Dear local newspaper, I think effects computers have on people are great learning skills/affects because they give us time to chat with friends/new people, helps us learn about the globe(astronomy) and keeps us out of troble! Thing about! Dont you think so? How would you feel if your teenager is always on the phone with friends! Do you ever time to chat with your friends or buisness partner about things. Well now - there's a new way to chat the computer, theirs plenty of sites on the internet to do so: @ORGANIZATION1, @ORGANIZATION2, @CAPS1, facebook, myspace ect. Just think now while your setting up meeting with your boss on the computer, your teenager is having fun on the phone not rushing to get off cause you want to use it. How did you learn about other countrys/states outside of yours? Well I have by computer/internet, it's a new way to learn about what going on in our time! You might think your child spends a lot of time on the computer, but ask them so question about the economy, sea floor spreading or even about the @DATE1's you'll be surprise at how much he/she knows. Believe it or not the computer is much interesting then in class all day reading out of books. If your child is home on your computer or at a local library, it's better than being out with friends being fresh, or being perpressured to doing something they know isnt right. You might not know where your child is, @CAPS2 forbidde in a hospital bed because of a drive-by. Rather than your child on the computer learning, chatting or just playing games, safe and sound in your home or community place. Now I hope you have reached a point to understand and agree with me, because computers can have great effects on you or child because it gives us time to chat with friends/new people, helps us learn about the globe and believe or not keeps us out of troble. Thank you for listenin"
-    # create embedding index from glove
+    # step1: create embedding index from glove
     word2vec_data = importdata()  #read vector.txt
     embedding_index = {}
     for row in word2vec_data:
@@ -175,26 +175,31 @@ if __name__ == '__main__':
         # calling from preprocessing.py
     print("max_len",max_len)
     sequence_length = max_len  # max length of an essay
+
+    #step2: convert word to ordered unique number tokens to form sequence
     data, tokenizer = word_tokenize(essay_list,sequence_length)
 
-    # print(data)
     print("data",np.shape(data))
-    #
-    # num_words = len(data)
-    # exit()
 
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
     num_words = min(max_features, len(word_index)) + 1
     print(num_words)
-    # #
+
+    #step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
     #
     print(np.shape(embedding_matrix))  #31 x 200
-    # #
-    labels = eval(open('list_of_scores.txt', 'r').read())
-    # exit()
+
+    # labels = eval(open('list_of_scores.txt', 'r').read())
+
+    #instead above line use below code to get list of scores
+    with open('list_of_scores.txt', 'r') as fp:
+        labels= [float(score.rstrip()) for score in fp.readlines()]
+    # print(labels)
+
+
     # data = data.T # 1x 40
 
 
