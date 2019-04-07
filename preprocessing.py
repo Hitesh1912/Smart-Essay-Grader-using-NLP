@@ -14,7 +14,7 @@ def importdata():
     #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
     data = pd.read_table('training_set_rel3.tsv', header=None, sep = "\t+", encoding='iso-8859-1')
     # print(data.head())
-    print(data.shape)
+    # print(data.shape)
     return data.values
 
 
@@ -79,7 +79,6 @@ def create_dict_of_essays(x_train):
     counter = 1
     dict_of_essays = dict()
     for row in x_train:
-        print(row[2])
         dict_of_essays[counter] = row[2]
         counter += 1
     return dict_of_essays
@@ -92,7 +91,8 @@ def write_chunked_essay_to_file(dict_of_essays_with_chunks):
 
 def write_scorelist_to_file(list_of_scores):
     wf = open("list_of_scores2.txt", "w", encoding='iso-8859-1')
-    wf.write(str(list_of_scores))
+    np.savetxt('list_of_scores.txt', list_of_scores, delimiter=',', fmt='%1.3f')
+    # wf.write(str(list_of_scores))
 
 
 def write_essaydict_to_file(dict_of_essays):
@@ -162,9 +162,62 @@ if __name__ == '__main__':
     dict_of_essays = dict()
     training_data = importdata()
     x_train, y_train = splitdataset(training_data)
-    scaler = preprocessing.MinMaxScaler()
-    normalizer = scaler.fit(y_train)
-    normalized_score = scaler.transform(y_train)
+    x_train = np.array(x_train)
+    y_train = np.array(y_train)
+    y_train = y_train[:,2]
+    # print(y_train)
+    # exit()
+    essay_set = x_train[:, 1]
+    essay_set = essay_set.astype(float)
+    idx_1 = np.array(np.where(essay_set == 1.0)[0])
+    idx_2 = np.array(np.where(essay_set == 2.0)[0])
+    idx_3 = np.array(np.where(essay_set == 3.0)[0])
+    idx_4 = np.array(np.where(essay_set == 4.0)[0])
+    idx_5 = np.array(np.where(essay_set == 5.0)[0])
+    idx_6 = np.array(np.where(essay_set == 6.0)[0])
+    idx_7 = np.array(np.where(essay_set == 7.0)[0])
+    idx_8 = np.array(np.where(essay_set == 8.0)[0])
+
+    list_y_score = list()
+    idx_1 = idx_1.reshape((np.shape(idx_1)[0]))
+    y_score1 = y_train[idx_1]
+    list_y_score.append(y_score1)
+    idx_2 = idx_2.reshape((np.shape(idx_2)[0]))
+    y_score2 = y_train[idx_2]
+    list_y_score.append(y_score2)
+    idx_3 = idx_3.reshape((np.shape(idx_3)[0]))
+    y_score3 = y_train[idx_3]
+    list_y_score.append(y_score3)
+    idx_4 = idx_4.reshape((np.shape(idx_4)[0]))
+    y_score4 = y_train[idx_4]
+    list_y_score.append(y_score4)
+    idx_5 = idx_5.reshape((np.shape(idx_5)[0]))
+    y_score5 = y_train[idx_5]
+    list_y_score.append(y_score5)
+    idx_6 = idx_6.reshape((np.shape(idx_6)[0]))
+    y_score6 = y_train[idx_6]
+    list_y_score.append(y_score6)
+    idx_7 = idx_7.reshape((np.shape(idx_7)[0]))
+    y_score7 = y_train[idx_7]
+    list_y_score.append(y_score7)
+    idx_8 = idx_8.reshape((np.shape(idx_8)[0]))
+    y_score8 = y_train[idx_8]
+    list_y_score.append(y_score8)
+
+    normalized_score_list = list()
+    for y_score in list_y_score:
+        y_score = y_score.reshape(-1, 1)
+        scaler = preprocessing.MinMaxScaler()
+        normalizer = scaler.fit(y_score)
+        normalized_score = scaler.transform(y_score)
+        normalized_score_list.append(normalized_score)
+
+    normalized_score_list = np.array(normalized_score_list)
+    y_train = np.concatenate(normalized_score_list, axis=0)
+    y_train = y_train.reshape(np.shape(y_train)[0])
+    # scaler = preprocessing.MinMaxScaler()
+    # normalizer = scaler.fit(y_train)
+    # normalized_score = scaler.transform(y_train)
     # normalize all the scores in y_train
     # normalizer = preprocessing.StandardScaler()
     # normalized_score = normalizer.fit_transform(y_train)
@@ -183,11 +236,11 @@ if __name__ == '__main__':
 
     list_of_essays = preprocess_data(training_data)
     dict_of_essays_with_chunks, dict_of_essays = create_essay_chunks(list_of_essays)
-    list_of_scores = create_list_of_scores(normalized_score)
+    # list_of_scores = create_list_of_scores(y_train)
     # dict_of_essays = create_dict_of_essays(x_train)
     # print(dict_of_essays)
     write_chunked_essay_to_file(dict_of_essays_with_chunks)
-    # write_scorelist_to_file(list_of_scores)
+    write_scorelist_to_file(y_train)
     write_essaydict_to_file(dict_of_essays)
     end_time = time.time()
     print("time",end_time - start_time)
