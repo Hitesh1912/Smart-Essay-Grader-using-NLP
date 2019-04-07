@@ -17,7 +17,7 @@ from keras import backend as K
 #constants:
 embedding_dim = 200 # Len of vectors
 max_features = 30000 # this is the number of words we care about
-
+vocabulary_size = 5000
 
 
 
@@ -42,7 +42,7 @@ def correlation_coefficient_loss(y_true, y_pred):
     x = K.variable(np.array(y_true, dtype="float32"))
     y = K.variable(np.array(y_pred, dtype="float32"))
     mx = K.mean(x)
-    my = K.meangit (y)
+    my = K.mean(y)
     xm, ym = x-mx, y-my
     r_num = K.sum(tf.multiply(xm,ym))
     r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
@@ -64,8 +64,9 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # model.add(Bidirectional(CuDNNLSTM(32)))
     # model.add(Dropout(0.25))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Flatten())
-    model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
+    # model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
     # ADD THE LSTM HIDDEN LAYER AS INPUT
     model.add(Dense(200, input_dim=200, activation='relu'))  # FF hidden layer
@@ -75,7 +76,7 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
 
     # Fit the model
-    model.fit(X_train, y_train, epochs=2)
+    model.fit(X_train, y_train, epochs=2, batch_size=2)
     print("training complete...")
 
     #
@@ -115,7 +116,7 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
 def word_tokenize(data,sequence_length):
     # data = data.split(" ")
     # data = list(data)
-    tokenizer = Tokenizer()
+    tokenizer = Tokenizer(num_words=vocabulary_size)
     tokenizer.fit_on_texts(data)
 
     # this takes our sentences and replaces each word with an integer
@@ -165,12 +166,12 @@ if __name__ == '__main__':
     max_len = 0
     for essay_id in text_data:
         text = " ".join(text_data[essay_id])
-        text = clean_text(text)
+        # text = clean_text(text)
         max_len = len(text) if len(text) > max_len else max_len
         essay_data = essay_data + text
         essay_list.append(text)
         # print(text)
-       # calling from preprocessing.py
+        # calling from preprocessing.py
     print("max_len",max_len)
     sequence_length = max_len  # max length of an essay
     data, tokenizer = word_tokenize(essay_list,sequence_length)
@@ -191,7 +192,7 @@ if __name__ == '__main__':
     #
     print(np.shape(embedding_matrix))  #31 x 200
     # #
-    labels = eval(open('scores_list.txt', 'r').read())
+    labels = eval(open('list_of_scores.txt', 'r').read())
     # exit()
     # data = data.T # 1x 40
 
@@ -204,6 +205,7 @@ if __name__ == '__main__':
     y_train = y_train[:10]
     X_test = X_test[:10,:]
     y_test = y_test[:10]
+    print(y_test)
     #
     # print(y_test)
     # exit()
