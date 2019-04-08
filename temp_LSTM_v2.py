@@ -13,6 +13,7 @@ from preprocessing import clean_text
 from sklearn.model_selection import train_test_split
 from keras import backend as K
 from sklearn.metrics import mean_squared_error
+import time
 
 
 #constants:
@@ -69,13 +70,11 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
 
     # Compile model
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
-
     # Fit the model
     model.summary()
     model.fit(X_train, y_train, epochs=3, batch_size=2)
     print("training complete...")
 
-    #
     # calculate predictions
     predictions = model.predict(X_test)
     # round predictions
@@ -121,7 +120,7 @@ def create_embedding_matrix(word_index,embeddings_index):
 
 
 if __name__ == '__main__':
-
+    start = time.time()
     # text = "Dear local newspaper, I think effects computers have on people are great learning skills/affects because they give us time to chat with friends/new people, helps us learn about the globe(astronomy) and keeps us out of troble! Thing about! Dont you think so? How would you feel if your teenager is always on the phone with friends! Do you ever time to chat with your friends or buisness partner about things. Well now - there's a new way to chat the computer, theirs plenty of sites on the internet to do so: @ORGANIZATION1, @ORGANIZATION2, @CAPS1, facebook, myspace ect. Just think now while your setting up meeting with your boss on the computer, your teenager is having fun on the phone not rushing to get off cause you want to use it. How did you learn about other countrys/states outside of yours? Well I have by computer/internet, it's a new way to learn about what going on in our time! You might think your child spends a lot of time on the computer, but ask them so question about the economy, sea floor spreading or even about the @DATE1's you'll be surprise at how much he/she knows. Believe it or not the computer is much interesting then in class all day reading out of books. If your child is home on your computer or at a local library, it's better than being out with friends being fresh, or being perpressured to doing something they know isnt right. You might not know where your child is, @CAPS2 forbidde in a hospital bed because of a drive-by. Rather than your child on the computer learning, chatting or just playing games, safe and sound in your home or community place. Now I hope you have reached a point to understand and agree with me, because computers can have great effects on you or child because it gives us time to chat with friends/new people, helps us learn about the globe and believe or not keeps us out of troble. Thank you for listenin"
     # step1: create embedding index from glove
     word2vec_data = importdata()  #read vector.txt
@@ -171,9 +170,7 @@ if __name__ == '__main__':
         labels= [float(score.rstrip()) for score in fp.readlines()]
     # print(labels)
 
-
     # data = data.T # 1x 40
-
 
     # lets keep a couple of thousand samples back as a test set
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
@@ -184,8 +181,7 @@ if __name__ == '__main__':
     X_test = X_test[:10,:]
     y_test = y_test[:10]
     print(y_test)
-    #
-    # print(y_test)
-    # exit()
 
     run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
+    end = time.time()
+    print("time", end - start)
