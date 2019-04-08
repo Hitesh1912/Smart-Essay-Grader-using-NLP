@@ -5,8 +5,10 @@ import pandas as pd
 from nltk.corpus import stopwords
 import re
 import time
+from spellchecker import SpellChecker
 from sklearn import preprocessing
 
+spell = SpellChecker()
 
 # Function importing Dataset
 def importdata():
@@ -61,7 +63,8 @@ def create_essay_chunks(list_of_essays):
         list_of_sentences = essay.split(". ")
         for sentence in list_of_sentences:
             # clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
-            clean_sentence = clean_text(sentence)
+            spelling_corrected_sentence = correct_spelling(sentence)
+            clean_sentence = clean_text(spelling_corrected_sentence)
             list_of_chunks.append(clean_sentence)
         dict_of_essays_with_chunks[essay_counter] = list_of_chunks
         essay_counter += 1
@@ -85,18 +88,18 @@ def create_dict_of_essays(x_train):
 
 
 def write_chunked_essay_to_file(dict_of_essays_with_chunks):
-    wf = open("dict_of_chunked_essays2.txt", "w", encoding='iso-8859-1')
+    wf = open("dict_of_chunked_essays3.txt", "w", encoding='iso-8859-1')
     wf.write(str(dict_of_essays_with_chunks))
 
 
 def write_scorelist_to_file(list_of_scores):
-    wf = open("list_of_scores2.txt", "w", encoding='iso-8859-1')
-    np.savetxt('list_of_scores.txt', list_of_scores, delimiter=',', fmt='%1.3f')
+    wf = open("list_of_scores3.txt", "w", encoding='iso-8859-1')
+    np.savetxt('list_of_scores3.txt', list_of_scores, delimiter=',', fmt='%1.3f')
     # wf.write(str(list_of_scores))
 
 
 def write_essaydict_to_file(dict_of_essays):
-    wf = open("dict_of_essays2.txt", "w", encoding='iso-8859-1')
+    wf = open("dict_of_essays3.txt", "w", encoding='iso-8859-1')
     wf.write(str(dict_of_essays))
 
 
@@ -154,6 +157,21 @@ def clean_text(text):
     text = text.replace(".", "")
 
     return text
+
+
+def correct_spelling(sentence):
+    words = sentence.split(" ")
+    misspelled = spell.unknown(words)
+    known_words = spell.known(words)
+    unknown_words = spell.unknown(words)
+    final_list = list()
+    for word in words:
+        if word in known_words:
+            final_list.append(word)
+        if word in unknown_words:
+            final_list.append(spell.correction(word))
+    sentence = ' '.join(final_list)
+    return sentence
 
 
 if __name__ == '__main__':
