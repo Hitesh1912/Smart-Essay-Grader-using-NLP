@@ -96,13 +96,12 @@ def word_tokenize(data,sequence_length):
     X = tokenizer.texts_to_sequences(data)
     # print(tokenizer.sequences_to_texts(X))
     # we then pad the sequences so they're all the same length (sequence_length)
-    X = pad_sequences(X, sequence_length)  #check
+    X = pad_sequences(X, sequence_length, padding='post')  #check
     return X, tokenizer
 
 
 def create_embedding_matrix(word_index,embeddings_index):
     num_words = min(max_features, len(word_index)) + 1
-    print(num_words)
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((num_words, embedding_dim))
     # for each word in out tokenizer lets try to find that work in our w2v model
@@ -130,16 +129,29 @@ if __name__ == '__main__':
 
     print("glove vector:::embedding index", len(embedding_index))
 
-    training_data = open('dict_of_chunked_essays.txt', 'r').read()
+    training_data = open('dict_of_essays.txt', 'r').read()
     text_data = eval(training_data)
     essay_list = []
     sequence_list = []
     essay_data = ""  #corpus of all the essays 12978
     max_len = 0
     for essay_id in text_data:
-        text = " ".join(text_data[essay_id])
+        text = text_data[essay_id].split(' ')
+        temp_text = []
+
+        # clean text
+        for val in text:
+            if val:
+                temp_text.append(val)
+
+        text = temp_text
+        text = " ".join(text)
         # text = clean_text(text)
-        max_len = len(text) if len(text) > max_len else max_len
+        max_len = len(text.split(' ')) if len(text.split(' ')) > max_len else max_len
+
+        # text = " ".join(text_data[essay_id])
+        # # text = clean_text(text)
+        # max_len = len(text) if len(text) > max_len else max_len
         essay_data = essay_data + text
         essay_list.append(text)
         # print(text)
