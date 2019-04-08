@@ -12,13 +12,13 @@ from utilities import  *
 from preprocessing import clean_text
 from sklearn.model_selection import train_test_split
 from keras import backend as K
+from sklearn.metrics import mean_squared_error
 
 
 #constants:
 embedding_dim = 200 # Len of vectors
 max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
-
 
 
 # Function importing Dataset
@@ -31,11 +31,9 @@ def importdata():
     return data.values
 
 
-
-def mean_squared_error(actual, predicted):
-    mse = (np.square(np.array(actual) - np.array(predicted))).mean()
-    return mse
-
+# def mean_squared_error(actual, predicted):
+#     mse = (np.square(np.array(actual) - np.array(predicted))).mean()
+#     return mse
 
 
 def correlation_coefficient_loss(y_true, y_pred):
@@ -59,10 +57,6 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
                         embeddings_initializer=Constant(embedding_matrix),
                         input_length=sequence_length,
                         trainable=True))
-    # model.add(SpatialDropout1D(0.2))
-    # model.add(Bidirectional(CuDNNLSTM(200, return_sequences=True)))
-    # model.add(Bidirectional(CuDNNLSTM(32)))
-    # model.add(Dropout(0.25))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 200)))
@@ -70,14 +64,15 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
 
     # Fit the model
-    model.fit(X_train, y_train, epochs=2, batch_size=2)
+    model.summary()
+    model.fit(X_train, y_train, epochs=3, batch_size=2)
     print("training complete...")
 
     #
@@ -88,31 +83,8 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     print(np.shape(predictions))
     print(predictions)
     print(y_test)
-    print("MSE", mean_squared_error(y_test, predictions))
+    print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
-
-    #
-    # print("train accuracy", accuracy_val(y, rounded))
-    #
-    # # calculate predictions
-    # predictions_t = model.predict(X_test)
-    # # round predictions
-    # rounded_t = [round(x[0]) for x in predictions_t]
-    # print(rounded_t)
-    # # print("MSE",mean_squared_error(y,rounded))
-    # print("test accuracy", accuracy_val(y_test, rounded_t))
-
-    # model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
-    # print(model.summary())
-    #
-    # # model.evaluate(data,labels)
-    #
-    # # batch_size = 128
-    # model.fit(data, labels, epochs=5, verbose=1, validation_split=0.1)
-    #
-    # model.predict(data)
-    # train LSTM
-
 
 
 def word_tokenize(data,sequence_length):
@@ -127,7 +99,6 @@ def word_tokenize(data,sequence_length):
     # we then pad the sequences so they're all the same length (sequence_length)
     X = pad_sequences(X, sequence_length)  #check
     return X, tokenizer
-
 
 
 def create_embedding_matrix(word_index,embeddings_index):
