@@ -79,8 +79,8 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     predictions = model.predict(X_test)
     # round predictions
     # rounded = [round(x[0]) for x in predictions]
-    print(np.shape(predictions))
     print(predictions)
+    np.savetxt('prediction_output/test.out', predictions, delimiter='\n')
     print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
