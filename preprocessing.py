@@ -63,8 +63,8 @@ def create_essay_chunks(list_of_essays):
         list_of_sentences = essay.split(". ")
         for sentence in list_of_sentences:
             # clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
-            spelling_corrected_sentence = correct_spelling(sentence)
-            clean_sentence = clean_text(spelling_corrected_sentence)
+            # spelling_corrected_sentence = correct_spelling(sentence)
+            clean_sentence = clean_text(sentence)
             list_of_chunks.append(clean_sentence)
         dict_of_essays_with_chunks[essay_counter] = list_of_chunks
         essay_counter += 1
@@ -125,11 +125,11 @@ def clean_text(text):
     text = re.sub(r"\'re", " are ", text)
     text = re.sub(r"\'d", " would ", text)
     text = re.sub(r"\'ll", " will ", text)
-    text = re.sub(r"@ORGANIZATION[0-9]", "organization", text)
-    text = re.sub(r"@CAPS[0-9]", "name", text)
-    text = re.sub(r"@NUM[0-9]", "number", text)
-    text = re.sub(r"@LOCATION[0-9]", "location", text)
-    text = re.sub(r"@DATE[0-9]", "date", text)
+    # text = re.sub(r"@ORGANIZATION[0-9]", "organization", text)
+    # text = re.sub(r"@CAPS[0-9]", "name", text)
+    # text = re.sub(r"@NUM[0-9]", "number", text)
+    # text = re.sub(r"@LOCATION[0-9]", "location", text)
+    # text = re.sub(r"@DATE[0-9]", "date", text)
     text = re.sub(r"[0-9]", "", text)
     text = re.sub(r",", " ", text)
     text = re.sub(r"\.", " ", text)
@@ -155,6 +155,8 @@ def clean_text(text):
     text = text.replace(":", "")
     text = text.replace(";", "")
     text = text.replace(".", "")
+    text = text.replace("'", "")
+    text = text.replace('"', "")
 
     return text
 
@@ -171,6 +173,7 @@ def correct_spelling(sentence):
         if word in unknown_words:
             final_list.append(spell.correction(word))
     sentence = ' '.join(final_list)
+    print(sentence)
     return sentence
 
 
