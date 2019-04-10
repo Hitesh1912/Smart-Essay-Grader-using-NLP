@@ -1,11 +1,9 @@
 import tensorflow as tf
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, LSTM,Lambda
 from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
-from keras.layers import Bidirectional,CuDNNLSTM
+from keras.layers import Bidirectional
 from keras.initializers import Constant
 from keras.optimizers import Adam
 from utilities import  *
@@ -56,10 +54,8 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
                         trainable=True))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 200)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 400)))
     # model.add(Flatten())
-    # model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
-
     # ADD THE LSTM HIDDEN LAYER AS INPUT
     model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
@@ -88,31 +84,45 @@ if __name__ == '__main__':
     start = time.time()
     # step1: create embedding index from glove
     word2vec_data = importdata()  # read vector.txt
+    # print(word2vec_data[0:,0])
     embedding_index = {}
     for row in word2vec_data:
         embedding_index[row[0]] = row[1:]
-
     print("glove vector:::embedding index", len(embedding_index))
 
+
     training_data = open('dict_of_chunked_essays.txt', 'r').read()
-    text_data = eval(training_data)
+    text_data = eval(training_data)  #bugg extra space need re processing
     essay_list = []
     sequence_list = []
     essay_data = ""  # corpus of all the essays 12978
     max_len = 0
     for essay_id in text_data:
         essay_list.append(chunks(text_data[essay_id]))
-
-    essay_list = np.array(essay_list)
     print("essay set with fixed chunks",np.shape(essay_list))
 
-    #step2: convert word to ordered unique number tokens to form sequence
+
+    #creating unigrams words for all essays text and essay list containing list of chunks
+    # structure : list of essays :list of chunks :list of unigrams words
     essay_data = ''
     for essay_id in text_data:
         text = " ".join(text_data[essay_id])
         essay_data += text
+    essay_data = essay_data.split(" ")  #into unigrams tokens before passing to token
 
-    data, tokenizer = word_tokenize(essay_list, essay_data, sequence_length)
+    essay_list1 = []
+    for essay in essay_list:
+        chunks_list = []
+        for chunk in essay:
+            chunk = " ".join(chunk)
+            # print(chunk)
+            chunk = chunk.split(" ")
+            chunks_list.append(chunk)
+        essay_list1.append(chunks_list)
+    print("essay list with fixed chunks", np.shape(essay_list1))
+
+    #step3: convert word to ordered unique number tokens to form sequence
+    data, tokenizer = word_tokenize(essay_list1, essay_data, sequence_length)
     print("essay list",np.shape(data))
 
     word_index = tokenizer.word_index
@@ -123,7 +133,7 @@ if __name__ == '__main__':
 
     #step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
-    print(np.shape(embedding_matrix))  #31 x 200
+    print(np.shape(embedding_matrix))  #300001 x 200
 
     #average the words matrix of each chunk to 1 x vector_dim
     essays_with_avg_chunked = avg_chunk_word_encoding(data, embedding_matrix)
@@ -132,7 +142,7 @@ if __name__ == '__main__':
     with open('list_of_scores.txt', 'r') as fp:
         labels = [float(score.rstrip()) for score in fp.readlines()]
     # print(labels)
-
+    exit()
     # data = data.T # 1x 40
 
     # lets keep a couple of thousand samples back as a test set
