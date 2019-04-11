@@ -24,35 +24,6 @@ def importdata():
     print(data.shape)
     return data.values
 
-
-# def word_tokenize(data_arr, essay_data, sequence_length):
-#     # data = data.split(" ")
-#     # data = list(data)
-#     tokenizer = Tokenizer(num_words=vocabulary_size)
-#     print('fitting tokenizer on whole essay')
-#     tokenizer.fit_on_texts(essay_data)
-#     print('fitting complete')
-#     tokenized_essays = []
-#     tokenized_chunks = []
-#     # this takes our sentences and replaces each word with an integer
-#     for chunk_arr in data_arr:
-#         for chunk in chunk_arr:
-#
-#             chunk  = " ".join(chunk)
-#             # print(np.shape(chunk), chunk)
-#             chunk = chunk.split(" ")
-#             chunk = tokenizer.texts_to_sequences(chunk)
-#             print(tokenizer.sequences_to_texts(chunk))
-#             # we then pad the sequences so they're all the same length (sequence_length)
-#             # chunk = pad_sequences(chunk, 50, padding='post')  #check
-#             tokenized_chunks.append(chunk)
-#             # print(tokenized_chunks)
-#             # print(type(tokenized_chunks))
-#         # print(tokenized_chunks)
-#         tokenized_essays.append(tokenized_chunks)
-#     return tokenized_essays, tokenizer
-
-
 def word_tokenize(essay_list, essay_data, sequence_length):
     tokenizer = Tokenizer(num_words=vocabulary_size)
     print('fitting tokenizer on whole essay')
@@ -63,7 +34,9 @@ def word_tokenize(essay_list, essay_data, sequence_length):
     for essay in essay_list:
         tokenized_chunks = []
         for chunk in essay:
+            # print(chunk)
             chunk_seq = tokenizer.texts_to_sequences(chunk)
+            chunk_seq = [x for x in chunk_seq if x!= []]  #to remove empty in sequence
             # print(chunk_seq)
             # print(tokenizer.sequences_to_texts(chunk_seq))
             # we then pad the sequences so they're all the same length (sequence_length)
@@ -96,10 +69,15 @@ def create_embedding_matrix(word_index,embeddings_index):
 #     args = [iter(iterable)] * n
 #     return zip_longest(*args, fillvalue=fillvalue)
 
-def chunks(sentences):
+def chunks(sentences1):
+    i = 0
+    sentences = [x.strip() for x in sentences1 if x]  #to remove empty in sequence
+    while len(sentences) < no_of_chunks:
+        sentences.append(sentences[i])
+        i += 1
     sentences = np.array(sentences)
-    return_arr = np.array_split(sentences, 3)
-    # return_arr = np.array(return_arr)
+    return_arr = np.array_split(sentences, no_of_chunks)
+    return_arr = [x for x in return_arr if x.size > 0]
     return return_arr
 
 
@@ -109,32 +87,25 @@ def avg_chunk_word_encoding(essays,embedding_matrix):
         chunks_list = []
         for chunk in essay:
             temp_word_matrix = []
-            if chunk:
-                for word_idx in chunk:
-                    if word_idx in embedding_matrix:
-                        temp_word_matrix.append(embedding_matrix[word_idx])
-                print("word matrix", np.shape(temp_word_matrix), len(chunk))
-            else:
-                print(chunk)
+            for word_idx in chunk:
+                temp_word_matrix.append(embedding_matrix[word_idx])
+            # print("word matrix", np.shape(temp_word_matrix), len(chunk))
             avg = np.mean(temp_word_matrix,axis=0)
-            print(np.shape(avg))
-            chunks_list.append(avg)
-        essays_list.append(chunks_list)
-    print("essay encoded",np.shape(essays_list))
+            #flatten
+            chunks_list.append(avg) # 1 x 200
+        # print(np.shape(chunks_list)) # 3 x1 x 200
+        essays_list.append(np.array(chunks_list))
     return essays_list
 
 
 def clean_text(text):
     # Remove puncuation
     text = text.translate(string.punctuation)
-
     # Convert words to lower case and split them
     text = text.lower().split()
-
     # Remove stop words
     stops = set(stopwords.words("english"))
     text = [w for w in text if not w in stops and len(w) >= 3]
-
     text = " ".join(text)
     # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)

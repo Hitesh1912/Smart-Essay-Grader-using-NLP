@@ -3,7 +3,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Flatten, LSTM,Lambda
 from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
-from keras.layers import Bidirectional
+from keras.layers import Bidirectional, Input
 from keras.initializers import Constant
 from keras.optimizers import Adam
 from utilities import  *
@@ -25,12 +25,6 @@ sequence_length = 500
 
 
 
-
-# def mean_squared_error(actual, predicted):
-#     mse = (np.square(np.array(actual) - np.array(predicted))).mean()
-#     return mse
-
-
 def correlation_coefficient_loss(y_true, y_pred):
     x = K.variable(np.array(y_true, dtype="float32"))
     y = K.variable(np.array(y_pred, dtype="float32"))
@@ -47,14 +41,11 @@ def correlation_coefficient_loss(y_true, y_pred):
 
 def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
     model = Sequential()
-    model.add(Embedding(num_words,
-                        embedding_dim,
-                        embeddings_initializer=Constant(embedding_matrix),
-                        input_length=sequence_length,
-                        trainable=True))
+    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
+    #                     input_length=sequence_length, trainable=True)) #bug check
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,200)))
     model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 400)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) #average
     # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
     model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
@@ -83,24 +74,24 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
 if __name__ == '__main__':
     start = time.time()
     # step1: create embedding index from glove
+    #=================================================================
     word2vec_data = importdata()  # read vector.txt
     # print(word2vec_data[0:,0])
     embedding_index = {}
     for row in word2vec_data:
         embedding_index[row[0]] = row[1:]
     print("glove vector:::embedding index", len(embedding_index))
+    #=================================================================
 
-
-    training_data = open('dict_of_chunked_essays.txt', 'r').read()
+    training_data = open('dict_of_chunked_essays3.txt', 'r').read()
     text_data = eval(training_data)  #bugg extra space need re processing
     essay_list = []
     sequence_list = []
     essay_data = ""  # corpus of all the essays 12978
-    max_len = 0
     for essay_id in text_data:
         essay_list.append(chunks(text_data[essay_id]))
     print("essay set with fixed chunks",np.shape(essay_list))
-
+    # np.savetxt("essay_list.txt",essay_list,delimiter=",",fmt="%s")
 
     #creating unigrams words for all essays text and essay list containing list of chunks
     # structure : list of essays :list of chunks :list of unigrams words
@@ -114,47 +105,58 @@ if __name__ == '__main__':
     for essay in essay_list:
         chunks_list = []
         for chunk in essay:
-            chunk = " ".join(chunk)
-            # print(chunk)
+            chunk = " ".join(chunk).strip()
             chunk = chunk.split(" ")
             chunks_list.append(chunk)
         essay_list1.append(chunks_list)
     print("essay list with fixed chunks", np.shape(essay_list1))
-
+    #=================================================================
     #step3: convert word to ordered unique number tokens to form sequence
     data, tokenizer = word_tokenize(essay_list1, essay_data, sequence_length)
     print("essay list",np.shape(data))
 
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
-
-    num_words = min(max_features, len(word_index)) + 1
-    print(num_words)
-
+    # num_words = min(max_features, len(word_index)) + 1
+    # print(num_words)
+    #=================================================================
     #step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
     print(np.shape(embedding_matrix))  #300001 x 200
 
     #average the words matrix of each chunk to 1 x vector_dim
     essays_with_avg_chunked = avg_chunk_word_encoding(data, embedding_matrix)
+    print(type(essays_with_avg_chunked))
+    # print(essays_with_avg_chunked[0])
 
     #instead use this code to get list of scores
-    with open('list_of_scores.txt', 'r') as fp:
+    with open('list_of_scores3.txt', 'r') as fp:
         labels = [float(score.rstrip()) for score in fp.readlines()]
     # print(labels)
-    exit()
     # data = data.T # 1x 40
-
     # lets keep a couple of thousand samples back as a test set
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
+    X_train, X_test, y_train, y_test = train_test_split(essays_with_avg_chunked, labels, test_size=0.2)
     print("test set size " + str(len(X_train)))
+    # (10382, 5)
+    # (2596, 5)
+    # (10382,)
+    # (2596,)
 
-    X_train = X_train[:10,:] # 10 x 3353
+    X_train, X_test = np.array(X_train) , np.array(X_test)
+    print(np.shape(X_train))
+    print(np.shape(X_test))
+    # print(np.shape(y_train))
+    # print(np.shape(y_test))
+
+    X_train = X_train[:10,:,:] # 10 x 3353
     y_train = y_train[:10]
-    X_test = X_test[:10,:]
+    X_test = X_test[:10,:,:]
     y_test = y_test[:10]
-    print(y_test)
+    # print(y_test)
+    num_words = len(word_index) + 1
 
+    exit()
+    #hyperparameters:
     run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
     end = time.time()
     print("time", end - start)
