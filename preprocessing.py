@@ -116,6 +116,8 @@ def clean_text(text):
     text = [w for w in text if not w in stops and len(w) >= 3]
 
     text = " ".join(text)
+    text = text.replace('"', "")
+    text = text.replace('.', "")
     # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
@@ -158,6 +160,7 @@ def clean_text(text):
     text = text.replace(".", "")
     text = text.replace("'", "")
     text = text.replace('"', "")
+    text = text.replace(" - ", " ")
 
     return text
 

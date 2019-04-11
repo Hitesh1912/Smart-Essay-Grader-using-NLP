@@ -90,7 +90,7 @@ def write_essaydict_to_file(dict_of_essays):
 
 
 def clean_text(text):
-    # Remove puncuation
+    # Remove punctuation
     text = text.translate(string.punctuation)
 
     # Convert words to lower case and split them
@@ -101,6 +101,8 @@ def clean_text(text):
     text = [w for w in text if not w in stops and len(w) >= 3]
 
     text = " ".join(text)
+    text = text.replace('"', "")
+    text = text.replace('.', "")
     # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
