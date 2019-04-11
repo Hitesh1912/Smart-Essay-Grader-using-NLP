@@ -262,6 +262,6 @@ if __name__ == '__main__':
     # print(dict_of_essays)
     write_chunked_essay_to_file(dict_of_essays_with_chunks)
     write_scorelist_to_file(y_train)
-    write_essaydict_to_file(dict_of_essays)
+    # write_essaydict_to_file(dict_of_essays)
     end_time = time.time()
     print("time",end_time - start_time)
