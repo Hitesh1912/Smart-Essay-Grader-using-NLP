@@ -66,14 +66,15 @@ def create_essay_chunks(list_of_essays):
             list_of_chunks.append(clean_sentence)
         dict_of_essays_with_chunks[essay_counter] = list_of_chunks
         essay_counter += 1
-    return dict_of_essays_with_chunks, dict_of_essays
+    return dict_of_essays_with_chunks
 
 
 def create_dict_of_essays(x_train):
     counter = 1
     dict_of_essays = dict()
     for row in x_train:
-        dict_of_essays[counter] = row[2]
+        cleaned_essay = clean_text(row[2])
+        dict_of_essays[counter] = cleaned_essay
         counter += 1
     return dict_of_essays
 
@@ -137,6 +138,7 @@ def clean_text(text):
     text = text.replace(".", "")
     text = text.replace("'", "")
     text = text.replace('"', "")
+    text = text.replace(" - ", " ")
 
     return text
 
@@ -177,8 +179,9 @@ if __name__ == '__main__':
         counter = counter + 1
 
     list_of_essays = preprocess_data(training_data)
-    dict_of_essays_with_chunks, dict_of_essays = create_essay_chunks(list_of_essays)
+    dict_of_essays_with_chunks = create_essay_chunks(list_of_essays)
     write_chunked_essay_to_file(dict_of_essays_with_chunks)
-    # write_essaydict_to_file(dict_of_essays)
+    dict_of_essays = create_dict_of_essays(x_train)
+    write_essaydict_to_file(dict_of_essays)
     end_time = time.time()
     print("time",end_time - start_time)
