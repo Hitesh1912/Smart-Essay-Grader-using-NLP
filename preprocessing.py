@@ -66,6 +66,14 @@ def create_essay_chunks(list_of_essays):
             # spelling_corrected_sentence = correct_spelling(sentence)
             clean_sentence = clean_text(sentence)
             list_of_chunks.append(clean_sentence)
+        i = 0
+        length = len(list_of_chunks)
+        while i < length:
+            if list_of_chunks[i] == '':
+                list_of_chunks.remove(list_of_chunks[i])
+                length = length - 1
+                continue
+            i = i + 1
         dict_of_essays_with_chunks[essay_counter] = list_of_chunks
         essay_counter += 1
     return dict_of_essays_with_chunks
@@ -118,6 +126,8 @@ def clean_text(text):
     text = " ".join(text)
     text = text.replace('"', "")
     text = text.replace('.', "")
+    text = text.replace('?', '')
+    text = text.replace("!", "")
     # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
@@ -161,7 +171,7 @@ def clean_text(text):
     text = text.replace("'", "")
     text = text.replace('"', "")
     text = text.replace(" - ", " ")
-
+    text = text.replace("  ", " ")
     return text
 
 
