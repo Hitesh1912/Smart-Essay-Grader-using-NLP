@@ -16,7 +16,7 @@ from itertools import zip_longest
 
 
 #constants:
-embedding_dim = 200 # Len of vectors
+embedding_dim = 300 # Len of vectors
 max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
 no_of_chunks = 3
@@ -43,12 +43,12 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     model = Sequential()
     # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
     #                     input_length=sequence_length, trainable=True)) #bug check
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,200)))
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) #average
+    model.add(Bidirectional(LSTM(embedding_dim,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(LSTM(embedding_dim,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 2* embedding_dim))) #average
     # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(embedding_dim, input_dim=2* embedding_dim, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
@@ -67,8 +67,6 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
-
-
 
 
 if __name__ == '__main__':
@@ -93,13 +91,13 @@ if __name__ == '__main__':
     print("essay set with fixed chunks",np.shape(essay_list))
     # np.savetxt("essay_list.txt",essay_list,delimiter=",",fmt="%s")
 
-    #creating unigrams words for all essays text and essay list containing list of chunks
+    # creating unigrams words for all essays text and essay list containing list of chunks
     # structure : list of essays :list of chunks :list of unigrams words
     essay_data = ''
     for essay_id in text_data:
         text = " ".join(text_data[essay_id])
         essay_data += text
-    essay_data = essay_data.split(" ")  #into unigrams tokens before passing to token
+    essay_data = essay_data.split(" ")  # into unigrams tokens before passing to token
 
     essay_list1 = []
     for essay in essay_list:
@@ -110,10 +108,10 @@ if __name__ == '__main__':
             chunks_list.append(chunk)
         essay_list1.append(chunks_list)
     print("essay list with fixed chunks", np.shape(essay_list1))
-    #=================================================================
-    #step3: convert word to ordered unique number tokens to form sequence
+    # =================================================================
+    # step3: convert word to ordered unique number tokens to form sequence
     data, tokenizer = word_tokenize(essay_list1, essay_data, sequence_length)
-    print("essay list",np.shape(data))
+    print("essay list", np.shape(data))
 
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
@@ -143,19 +141,19 @@ if __name__ == '__main__':
     # (2596,)
 
     X_train, X_test = np.array(X_train) , np.array(X_test)
+
     print(np.shape(X_train))
     print(np.shape(X_test))
     # print(np.shape(y_train))
     # print(np.shape(y_test))
 
-    X_train = X_train[:10,:,:] # 10 x 3353
-    y_train = y_train[:10]
-    X_test = X_test[:10,:,:]
-    y_test = y_test[:10]
+    # X_train = X_train[:10,:,:] # 10 x 3353
+    # y_train = y_train[:10]
+    # X_test = X_test[:10,:,:]
+    # y_test = y_test[:10]
     # print(y_test)
     num_words = len(word_index) + 1
 
-    exit()
     #hyperparameters:
     run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
     end = time.time()

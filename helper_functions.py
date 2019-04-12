@@ -8,7 +8,7 @@ from nltk import ngrams
 
 
 #constants:
-embedding_dim = 200 # Len of vectors
+embedding_dim = 300 # Len of vectors
 max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
 no_of_chunks = 3
@@ -24,18 +24,31 @@ def importdata():
     print(data.shape)
     return data.values
 
+
 def word_tokenize(essay_list, essay_data, sequence_length):
     tokenizer = Tokenizer(num_words=vocabulary_size)
     print('fitting tokenizer on whole essay')
+    # print(len(essay_data))
+    # print(len(essay_data[0]))
+    # print(essay_data[0])
+    # exit()
     tokenizer.fit_on_texts(essay_data)
     print('fitting complete')
     tokenized_essays = []
+    word_index_tok = tokenizer.word_index
     # this takes our sentences and replaces each word with an integer
+    count = 0
     for essay in essay_list:
         tokenized_chunks = []
         for chunk in essay:
-            # print(chunk)
-            chunk_seq = tokenizer.texts_to_sequences(chunk)
+            # chunk_seq = tokenizer.texts_to_sequences(chunk)
+            chunk_seq = []
+            for word in chunk:
+                if word in word_index_tok:
+                    chunk_seq.append([word_index_tok[word]])
+                else:
+                    chunk_seq.append([word_index_tok['unk']])
+            # tokenizer.
             chunk_seq = [x for x in chunk_seq if x!= []]  #to remove empty in sequence
             # print(chunk_seq)
             # print(tokenizer.sequences_to_texts(chunk_seq))
@@ -43,11 +56,12 @@ def word_tokenize(essay_list, essay_data, sequence_length):
             # chunk = pad_sequences(chunk, 50, padding='post')  #check
             tokenized_chunks.append(chunk_seq)
         tokenized_essays.append(tokenized_chunks)
+        count += 1
     return tokenized_essays, tokenizer
 
 
-
 def create_embedding_matrix(word_index,embeddings_index):
+
     num_words = min(max_features, len(word_index)) + 1
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
@@ -65,10 +79,6 @@ def create_embedding_matrix(word_index,embeddings_index):
     return embedding_matrix
 
 
-# def grouper(iterable, n, fillvalue=None):
-#     args = [iter(iterable)] * n
-#     return zip_longest(*args, fillvalue=fillvalue)
-
 def chunks(sentences1):
     i = 0
     sentences = [x.strip() for x in sentences1 if x]  #to remove empty in sequence
@@ -83,17 +93,20 @@ def chunks(sentences1):
 
 def avg_chunk_word_encoding(essays,embedding_matrix):
     essays_list = []
+    count = 0
     for essay in essays:
+        # print(count)
         chunks_list = []
         for chunk in essay:
+            # print(chunk)
             temp_word_matrix = []
             for word_idx in chunk:
                 temp_word_matrix.append(embedding_matrix[word_idx])
             # print("word matrix", np.shape(temp_word_matrix), len(chunk))
             avg = np.mean(temp_word_matrix,axis=0)
             #flatten
-            chunks_list.append(avg) # 1 x 200
-        # print(np.shape(chunks_list)) # 3 x1 x 200
+            chunks_list.append(avg[0]) # 1 x 200
+        count += 1
         essays_list.append(np.array(chunks_list))
     return essays_list
 
