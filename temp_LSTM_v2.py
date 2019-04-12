@@ -17,7 +17,7 @@ import time
 
 #constants:
 embedding_dim = 200 # Len of vectors
-max_features = 30000 # this is the number of words we care about
+# max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
 
 
@@ -138,8 +138,8 @@ def processing_dataset(data_set):
     print("data after tokenizing", np.shape(data))
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
-    num_words = min(max_features, len(word_index)) + 1
-    print(num_words)
+    # num_words = min(max_features, len(word_index)) + 1
+    # print(num_words)
     # step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index, embedding_index)
     print("embedding matrix created",np.shape(embedding_matrix))  # 31 x 200
