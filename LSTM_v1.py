@@ -43,12 +43,12 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     model = Sequential()
     # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
     #                     input_length=sequence_length, trainable=True)) #bug check
-    model.add(Bidirectional(LSTM(embedding_dim,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
-    model.add(Bidirectional(LSTM(embedding_dim,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 2* embedding_dim))) #average
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) #average
     # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(embedding_dim, input_dim=2* embedding_dim, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
@@ -67,6 +67,17 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
+
+
+def multiply_test(x_test, y_test):
+    x_test_chunk = []
+    y_test_chunk = []
+    for i in range(len(x_test)):
+        for count in range(no_of_chunks):
+            x_test_chunk.append(x_test[i])
+            y_test_chunk.append(y_test[i])
+
+    return np.array(x_test_chunk), np.array(y_test_chunk)
 
 
 if __name__ == '__main__':
@@ -117,8 +128,8 @@ if __name__ == '__main__':
     print('Found %s unique tokens.' % len(word_index))
     # num_words = min(max_features, len(word_index)) + 1
     # print(num_words)
-    #=================================================================
-    #step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
+    # =================================================================
+    # step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
     print(np.shape(embedding_matrix))  #300001 x 200
 
@@ -144,17 +155,21 @@ if __name__ == '__main__':
 
     print(np.shape(X_train))
     print(np.shape(X_test))
+
+    print(len(X_test))
+    X_test, y_test = multiply_test(X_test, y_test)
+    print(len(X_test))
     # print(np.shape(y_train))
     # print(np.shape(y_test))
 
-    # X_train = X_train[:10,:,:] # 10 x 3353
-    # y_train = y_train[:10]
-    # X_test = X_test[:10,:,:]
-    # y_test = y_test[:10]
+    X_train = X_train[:10,:,:] # 10 x 3353
+    y_train = y_train[:10]
+    X_test = X_test[:10,:,:]
+    y_test = y_test[:10]
     # print(y_test)
     num_words = len(word_index) + 1
 
-    #hyperparameters:
+    # hyperparameters:
     run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
     end = time.time()
     print("time", end - start)
