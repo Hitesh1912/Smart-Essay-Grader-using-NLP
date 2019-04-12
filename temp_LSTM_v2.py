@@ -4,12 +4,11 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, LSTM,Lambda
 from keras.layers.embeddings import Embedding
-from keras.layers import TimeDistributed
-from keras.layers import Bidirectional,CuDNNLSTM
+from keras.layers import Bidirectional
 from keras.initializers import Constant
 from keras.optimizers import Adam
-from utilities import  *
-from preprocessing import clean_text
+import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from keras import backend as K
 from sklearn.metrics import mean_squared_error
@@ -24,17 +23,10 @@ vocabulary_size = 5000
 
 # Function importing Dataset
 def importdata():
-    # train_data = pd.read_csv(
-    #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
     data = pd.read_table('vectors.txt', header=None, sep = " ")
     # print(data.head())
     print(data.shape)
     return data.values
-
-
-# def mean_squared_error(actual, predicted):
-#     mse = (np.square(np.array(actual) - np.array(predicted))).mean()
-#     return mse
 
 
 def correlation_coefficient_loss(y_true, y_pred):
@@ -51,50 +43,54 @@ def correlation_coefficient_loss(y_true, y_pred):
     return 1 - K.square(r)
 
 
-def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
+def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length):
+
+    #hyperparameters
+    lstm_size = 200
+    ffnn_size = 200
+    epoch = 10
+    learning_rate = 0.001
+    bat_size = 32
+    train_flag = True
+
+
     model = Sequential()
     model.add(Embedding(num_words,
                         embedding_dim,
                         embeddings_initializer=Constant(embedding_matrix),
                         input_length=sequence_length,
-                        trainable=True))
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
-    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 200)))
+                        trainable=train_flag))
+    model.add(Bidirectional(LSTM(lstm_size,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Bidirectional(LSTM(lstm_size,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(sequence_length, 400)))
     # model.add(Flatten())
-    # model.add(Dense(units=200, activation='softmax')) # # LSTM hidden layer -> FF INPUT
 
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(ffnn_size, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate), metrics=['accuracy'])  # learning rate
     # Fit the model
     model.summary()
-    model.fit(X_train, y_train, epochs=3, batch_size=2)
+    model.fit(X_train, y_train, epochs=epoch, batch_size=bat_size)
     print("training complete...")
 
     # calculate predictions
     predictions = model.predict(X_test)
-    # round predictions
-    # rounded = [round(x[0]) for x in predictions]
     print(predictions)
-    np.savetxt('prediction_output/test.out', predictions, delimiter='\n')
+    # np.savetxt('prediction_output/test.out', predictions, delimiter='\n')
     print(y_test)
+    print("MSE",mean_squared_error(y_test, predictions))
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
 
 
 def word_tokenize(data,sequence_length):
-    # data = data.split(" ")
-    # data = list(data)
     tokenizer = Tokenizer(num_words=vocabulary_size)
     tokenizer.fit_on_texts(data)
-
     # this takes our sentences and replaces each word with an integer
     X = tokenizer.texts_to_sequences(data)
-    # print(tokenizer.sequences_to_texts(X))
     # we then pad the sequences so they're all the same length (sequence_length)
     X = pad_sequences(X, sequence_length, padding='post')  #check
     return X, tokenizer
@@ -113,9 +109,44 @@ def create_embedding_matrix(word_index,embeddings_index):
             # we found the word - add that words vector to the matrix
             embedding_matrix[i] = embedding_vector
         else:
-            # doesn't exist, assign a random vector
             embedding_matrix[i] = embeddings_index.get('<unk>')
     return embedding_matrix
+
+
+
+def processing_dataset(data_set):
+    text_data = eval(data_set)
+    essay_list = []
+    essay_data = ""  # corpus of all the essays 12978
+    max_len = 0
+    for essay_id in text_data:
+        text = text_data[essay_id].split(' ')
+        temp_text = []
+        for val in text:
+            if val:
+                temp_text.append(val)
+        text = temp_text
+        text = " ".join(text)
+        max_len = len(text.split(' ')) if len(text.split(' ')) > max_len else max_len
+        essay_data = essay_data + text
+        essay_list.append(text)
+    print("max_len", max_len)
+    sequence_length = max_len  # max length of an essay
+
+    # step2: convert word to ordered unique number tokens to form sequence
+    data, tokenizer = word_tokenize(essay_list, sequence_length)
+    print("data after tokenizing", np.shape(data))
+    word_index = tokenizer.word_index
+    print('Found %s unique tokens.' % len(word_index))
+    num_words = min(max_features, len(word_index)) + 1
+    print(num_words)
+    # step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
+    embedding_matrix = create_embedding_matrix(word_index, embedding_index)
+    print("embedding matrix created",np.shape(embedding_matrix))  # 31 x 200
+    return data, sequence_length, num_words, embedding_matrix
+
+
+
 
 
 if __name__ == '__main__':
@@ -125,74 +156,38 @@ if __name__ == '__main__':
     embedding_index = {}
     for row in word2vec_data:
         embedding_index[row[0]] = row[1:]
-
     print("glove vector:::embedding index", len(embedding_index))
 
-    training_data = open('dict_of_essays.txt', 'r').read()
-    text_data = eval(training_data)
-    essay_list = []
-    sequence_list = []
-    essay_data = ""  #corpus of all the essays 12978
-    max_len = 0
-    for essay_id in text_data:
-        text = text_data[essay_id].split(' ')
-        temp_text = []
+    training_data = open('dict_of_essays3.txt', 'r').read()
+    data, sequence_length, num_words, embedding_matrix = processing_dataset(training_data)
 
-        # clean text
-        for val in text:
-            if val:
-                temp_text.append(val)
-
-        text = temp_text
-        text = " ".join(text)
-        # text = clean_text(text)
-        max_len = len(text.split(' ')) if len(text.split(' ')) > max_len else max_len
-
-        # text = " ".join(text_data[essay_id])
-        # # text = clean_text(text)
-        # max_len = len(text) if len(text) > max_len else max_len
-        essay_data = essay_data + text
-        essay_list.append(text)
-        # print(text)
-        # calling from preprocessing.py
-    print("max_len",max_len)
-    sequence_length = max_len  # max length of an essay
-
-    #step2: convert word to ordered unique number tokens to form sequence
-    data, tokenizer = word_tokenize(essay_list,sequence_length)
-
-    print("data",np.shape(data))
-
-    word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
-
-    num_words = min(max_features, len(word_index)) + 1
-    print(num_words)
-
-    #step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
-    embedding_matrix = create_embedding_matrix(word_index,embedding_index)
-    #
-    print(np.shape(embedding_matrix))  #31 x 200
-
-    # labels = eval(open('list_of_scores.txt', 'r').read())
 
     #instead above line use below code to get list of scores
-    with open('list_of_scores.txt', 'r') as fp:
+    with open('list_of_scores3.txt', 'r') as fp:
         labels= [float(score.rstrip()) for score in fp.readlines()]
-    # print(labels)
 
-    # data = data.T # 1x 40
-
-    # lets keep a couple of thousand samples back as a test set
+    #cross-validation split
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
-    print("test set size " + str(len(X_train)))
+    print(np.shape(X_train), np.shape(y_train))
+    print(np.shape(X_test),np.shape(y_train))
 
-    X_train = X_train[:10,:] # 10 x 3353
-    y_train = y_train[:10]
-    X_test = X_test[:10,:]
-    y_test = y_test[:10]
+    X_train = X_train[:1000,:] # 10 x 3353
+    y_train = y_train[:1000]
+    X_test = X_test[:200,:]
+    y_test = y_test[:200]
+    print("y_true")
     print(y_test)
 
-    run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
+    #processing test data
+    # test_data = open('dict_of_essays_test.txt','r').read()
+    # X_test, sequence_length, num_words, embedding_matrix = processing_dataset(test_data)
+    #
+    # with open('list_of_scores3.txt', 'r') as fp:
+    #     y_test= [float(score.rstrip()) for score in fp.readlines()]
+
+    #run on training and test on validation set
+
+    #NOTE: INCCREASE THE BATCH SIZE WHEN YOU INCREASE THE DATA POINTS
+    run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length)
     end = time.time()
     print("time", end - start)
