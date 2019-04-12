@@ -62,7 +62,7 @@ def word_tokenize(essay_list, essay_data, sequence_length):
 
 def create_embedding_matrix(word_index,embeddings_index):
 
-    num_words = min(max_features, len(word_index)) + 1
+    # num_words = min(max_features, len(word_index)) + 1
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
     # for each word in out tokenizer lets try to find that work in our w2v model

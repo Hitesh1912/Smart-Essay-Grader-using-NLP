@@ -48,13 +48,14 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
     model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
     # Fit the model
     model.summary()
-    model.fit(X_train, y_train, epochs=3, batch_size=2)
+    model.fit(X_train, y_train, epochs=20, batch_size=64)
     print("training complete...")
 
     # calculate predictions
@@ -62,9 +63,15 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     # round predictions
     # rounded = [round(x[0]) for x in predictions]
     print(predictions)
-    np.savetxt('prediction_output/test.out', predictions, delimiter='\n')
+    np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
+    np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
     print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
+    accuracy = 0
+    for i in range(len(y_test)):
+        if y_test[i] == predictions[i]:
+            accuracy += 1
+    print('accuracy: '+ str(accuracy/len(y_test)))
     print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
 
 
@@ -163,10 +170,10 @@ if __name__ == '__main__':
     # print(np.shape(y_train))
     # print(np.shape(y_test))
 
-    X_train = X_train[:20,:,:] # 10 x 3353
-    y_train = y_train[:20]
-    X_test = X_test[:20,:,:]
-    y_test = y_test[:20]
+    # X_train = X_train[:20,:,:] # 10 x 3353
+    # y_train = y_train[:20]
+    # X_test = X_test[:20,:,:]
+    # y_test = y_test[:20]
     # print(y_test)
     num_words = len(word_index) + 1
 
