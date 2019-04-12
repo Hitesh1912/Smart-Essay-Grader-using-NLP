@@ -24,7 +24,6 @@ no_of_chunks = 3
 sequence_length = 500
 
 
-
 def correlation_coefficient_loss(y_true, y_pred):
     x = K.variable(np.array(y_true, dtype="float32"))
     y = K.variable(np.array(y_pred, dtype="float32"))
@@ -73,10 +72,12 @@ def multiply_test(x_test, y_test):
     x_test_chunk = []
     y_test_chunk = []
     for i in range(len(x_test)):
-        for count in range(no_of_chunks):
-            x_test_chunk.append(x_test[i])
+        for chunk in x_test[i]:
+            temp_chunk_x = []
+            for count in range(no_of_chunks):
+                temp_chunk_x.append(np.array(chunk))
             y_test_chunk.append(y_test[i])
-
+            x_test_chunk.append(temp_chunk_x)
     return np.array(x_test_chunk), np.array(y_test_chunk)
 
 
@@ -162,10 +163,10 @@ if __name__ == '__main__':
     # print(np.shape(y_train))
     # print(np.shape(y_test))
 
-    X_train = X_train[:10,:,:] # 10 x 3353
-    y_train = y_train[:10]
-    X_test = X_test[:10,:,:]
-    y_test = y_test[:10]
+    X_train = X_train[:20,:,:] # 10 x 3353
+    y_train = y_train[:20]
+    X_test = X_test[:20,:,:]
+    y_test = y_test[:20]
     # print(y_test)
     num_words = len(word_index) + 1
 
