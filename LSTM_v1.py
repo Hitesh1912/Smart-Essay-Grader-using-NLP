@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, LSTM,Lambda
+from keras.layers import Dense, Flatten, LSTM,Lambda, GRU, SimpleRNN
 from keras.layers.embeddings import Embedding
 from keras.layers import TimeDistributed
 from keras.layers import Bidirectional, Input
@@ -13,6 +13,7 @@ from keras import backend as K
 from sklearn.metrics import mean_squared_error
 import time
 from itertools import zip_longest
+from scipy.stats import pearsonr
 
 
 #constants:
@@ -38,15 +39,18 @@ def correlation_coefficient_loss(y_true, y_pred):
     return 1 - K.square(r)
 
 
-def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
+def run_bi_directional_two_layer_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
     model = Sequential()
     # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
     #                     input_length=sequence_length, trainable=True)) #bug check
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
-    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True,input_shape=(no_of_chunks,embedding_dim)))
+    # model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
+    # model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    # model.add(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True))
     model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) #average
     # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
@@ -55,7 +59,7 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
     # Fit the model
     model.summary()
-    model.fit(X_train, y_train, epochs=20, batch_size=64)
+    model.fit(X_train, y_train, epochs=20, batch_size=64, verbose=0)
     print("training complete...")
 
     # calculate predictions
@@ -72,7 +76,89 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
         if y_test[i] == predictions[i]:
             accuracy += 1
     print('accuracy: '+ str(accuracy/len(y_test)))
-    print("pearson", K.eval(correlation_coefficient_loss(y_test,predictions)))
+    print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
+
+
+def run_gru(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
+    model = Sequential()
+    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
+    #                     input_length=sequence_length, trainable=True)) #bug check
+    model.add(Bidirectional(GRU(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True), input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(GRU(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) # average
+    # model.add(Flatten())
+    # ADD THE LSTM HIDDEN LAYER AS INPUT
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(1, activation='sigmoid'))  # output layer
+
+    # Compile model
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
+
+    # Fit the model
+    # model.summary()
+    y_train = np.array(y_train)
+    model.fit(X_train, y_train, epochs=20, batch_size=64, verbose=0)
+    print("training complete...")
+
+    # calculate predictions
+    predictions = model.predict(X_test)
+
+    # round predictions
+    # rounded = [round(x[0]) for x in predictions]
+    print(predictions)
+    np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
+    np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
+    print(y_test)
+    print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
+    accuracy = 0
+    for i in range(len(y_test)):
+        if y_test[i] == predictions[i]:
+            accuracy += 1
+    print('accuracy: '+ str(accuracy/len(y_test)))
+    print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
+
+
+def run_rnn(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
+    model = Sequential()
+    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
+    #                     input_length=sequence_length, trainable=True)) #bug check
+    model.add(Bidirectional(SimpleRNN(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(SimpleRNN(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) # average
+    # model.add(Flatten())
+    # ADD THE LSTM HIDDEN LAYER AS INPUT
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(1, activation='sigmoid'))  # output layer
+
+    # Compile model
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
+
+    # Fit the model
+    # model.summary()
+    y_train = np.array(y_train)
+    model.fit(X_train, y_train, epochs=20, batch_size=64, verbose=0)
+    print("training complete...")
+
+    # calculate predictions
+    predictions = model.predict(X_test)
+
+    # round predictions
+    # rounded = [round(x[0]) for x in predictions]
+    print(predictions)
+    np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
+    np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
+    print(y_test)
+    print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
+    accuracy = 0
+    for i in range(len(y_test)):
+        if y_test[i] == predictions[i]:
+            accuracy += 1
+    print('accuracy: '+ str(accuracy/len(y_test)))
+    print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
 
 
 def multiply_test(x_test, y_test):
@@ -146,7 +232,7 @@ if __name__ == '__main__':
     print(type(essays_with_avg_chunked))
     # print(essays_with_avg_chunked[0])
 
-    #instead use this code to get list of scores
+    # instead use this code to get list of scores
     with open('list_of_scores3.txt', 'r') as fp:
         labels = [float(score.rstrip()) for score in fp.readlines()]
     # print(labels)
@@ -165,7 +251,7 @@ if __name__ == '__main__':
     print(np.shape(X_test))
 
     print(len(X_test))
-    X_test, y_test = multiply_test(X_test, y_test)
+    # X_test, y_test = multiply_test(X_test, y_test)
     print(len(X_test))
     # print(np.shape(y_train))
     # print(np.shape(y_test))
@@ -178,6 +264,8 @@ if __name__ == '__main__':
     num_words = len(word_index) + 1
 
     # hyperparameters:
-    run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
+    run_bi_directional_two_layer_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
+    # run_gru(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
+    # run_rnn(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels)
     end = time.time()
     print("time", end - start)
