@@ -17,7 +17,7 @@ import time
 
 #constants:
 embedding_dim = 200 # Len of vectors
-# max_features = 30000 # this is the number of words we care about
+max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
 
 
@@ -38,13 +38,11 @@ def correlation_coefficient_loss(y_true, y_pred):
     r_num = K.sum(tf.multiply(xm,ym))
     r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
     r = r_num / r_den
-
     r = K.maximum(K.minimum(r, 1.0), -1.0)
     return 1 - K.square(r)
 
 
 def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length):
-
     #hyperparameters
     lstm_size = 200
     ffnn_size = 200
@@ -52,7 +50,6 @@ def run_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_l
     learning_rate = 0.001
     bat_size = 32
     train_flag = True
-
 
     model = Sequential()
     model.add(Embedding(num_words,
@@ -138,8 +135,7 @@ def processing_dataset(data_set):
     print("data after tokenizing", np.shape(data))
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
-    # num_words = min(max_features, len(word_index)) + 1
-    # print(num_words)
+
     # step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
     embedding_matrix = create_embedding_matrix(word_index, embedding_index)
     print("embedding matrix created",np.shape(embedding_matrix))  # 31 x 200
@@ -177,13 +173,6 @@ if __name__ == '__main__':
     y_test = y_test[:200]
     print("y_true")
     print(y_test)
-
-    #processing test data
-    # test_data = open('dict_of_essays_test.txt','r').read()
-    # X_test, sequence_length, num_words, embedding_matrix = processing_dataset(test_data)
-    #
-    # with open('list_of_scores3.txt', 'r') as fp:
-    #     y_test= [float(score.rstrip()) for score in fp.readlines()]
 
     #run on training and test on validation set
 
