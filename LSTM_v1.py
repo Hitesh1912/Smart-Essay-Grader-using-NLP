@@ -1,4 +1,5 @@
 import tensorflow as tf
+from gensim.models import KeyedVectors
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, LSTM,Lambda, GRU, SimpleRNN
 from keras.layers.embeddings import Embedding
@@ -34,63 +35,49 @@ def correlation_coefficient_loss(y_true, y_pred):
     r_num = K.sum(tf.multiply(xm,ym))
     r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
     r = r_num / r_den
-
     r = K.maximum(K.minimum(r, 1.0), -1.0)
     return 1 - K.square(r)
 
 
 def run_bi_directional_two_layer_lstm(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
     model = Sequential()
-    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
-    #                     input_length=sequence_length, trainable=True)) #bug check
-    model.add(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True,input_shape=(no_of_chunks,embedding_dim)))
-    # model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
-    # model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
+    # model.add(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True,input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
+    model.add(Bidirectional(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     # model.add(LSTM(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True))
     model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) #average
-    # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.001), metrics=['accuracy'])  # learning rate
     # Fit the model
     model.summary()
-    model.fit(X_train, y_train, epochs=20, batch_size=64, verbose=0)
+    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)
     print("training complete...")
 
     # calculate predictions
     predictions = model.predict(X_test)
-    # round predictions
-    # rounded = [round(x[0]) for x in predictions]
     print(predictions)
     np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
     np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
     print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
-    accuracy = 0
-    for i in range(len(y_test)):
-        if y_test[i] == predictions[i]:
-            accuracy += 1
-    print('accuracy: '+ str(accuracy/len(y_test)))
     print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
 
 
 def run_gru(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
     model = Sequential()
-    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
-    #                     input_length=sequence_length, trainable=True)) #bug check
     model.add(Bidirectional(GRU(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True), input_shape=(no_of_chunks,embedding_dim)))
     model.add(Bidirectional(GRU(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) # average
-    # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
@@ -104,34 +91,23 @@ def run_gru(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_le
 
     # calculate predictions
     predictions = model.predict(X_test)
-
-    # round predictions
-    # rounded = [round(x[0]) for x in predictions]
-    print(predictions)
-    np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
-    np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
-    print(y_test)
+    # print(predictions)
+    # np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
+    # np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
+    # print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
-    accuracy = 0
-    for i in range(len(y_test)):
-        if y_test[i] == predictions[i]:
-            accuracy += 1
-    print('accuracy: '+ str(accuracy/len(y_test)))
     print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
 
 
 def run_rnn(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_length,labels):
     model = Sequential()
-    # model.add(Embedding(num_words, embedding_dim,embeddings_initializer=Constant(embedding_matrix),
-    #                     input_length=sequence_length, trainable=True)) #bug check
     model.add(Bidirectional(SimpleRNN(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True),input_shape=(no_of_chunks,embedding_dim)))
     model.add(Bidirectional(SimpleRNN(200,dropout=0.2,recurrent_dropout=0.2,return_sequences=True)))
     model.add(Lambda(lambda x: K.mean(x, axis=1), input_shape=(no_of_chunks, 400))) # average
-    # model.add(Flatten())
     # ADD THE LSTM HIDDEN LAYER AS INPUT
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
-    model.add(Dense(200, input_dim=400, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
+    model.add(Dense(200, activation='relu'))  # FF hidden layer
     model.add(Dense(1, activation='sigmoid'))  # output layer
 
     # Compile model
@@ -145,19 +121,11 @@ def run_rnn(X_train,y_train,X_test,y_test,num_words,embedding_matrix,sequence_le
 
     # calculate predictions
     predictions = model.predict(X_test)
-
-    # round predictions
-    # rounded = [round(x[0]) for x in predictions]
-    print(predictions)
-    np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
-    np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
-    print(y_test)
+    # print(predictions)
+    # np.savetxt('prediction_output/pred_test.out', predictions, delimiter='\n')
+    # np.savetxt('prediction_output/real_test.out', y_test, delimiter='\n')
+    # print(y_test)
     print("RMSE", np.sqrt(mean_squared_error(y_test, predictions)))
-    accuracy = 0
-    for i in range(len(y_test)):
-        if y_test[i] == predictions[i]:
-            accuracy += 1
-    print('accuracy: '+ str(accuracy/len(y_test)))
     print("pearson", pearsonr(predictions.reshape(np.shape(predictions)[0]), y_test))
 
 
@@ -185,6 +153,20 @@ if __name__ == '__main__':
         embedding_index[row[0]] = row[1:]
     print("glove vector:::embedding index", len(embedding_index))
     #=================================================================
+    # load pretrained word2vec
+    # filename = 'GoogleNews-vectors-negative300.bin'
+    # model = KeyedVectors.load_word2vec_format(filename, binary=True)
+    # print("loading google word2vec",model)
+    # # create embedding index dictionary from pretrained word vectors
+    # words = list(model.wv.vocab) #300000
+    # embedding_index = {}
+    # for word in words:
+    #     coefs = np.asarray(model[word], dtype='float32')
+    #     embedding_index[word] = coefs
+    # embedding_index['<unk>'] = np.random.uniform(-1,1,(300,))
+    # print('Found %s word vectors.' % len(embedding_index))
+    print("embedding index generated")
+    # ===================================================================
 
     training_data = open('dict_of_chunked_essays3.txt', 'r').read()
     text_data = eval(training_data)  #bugg extra space need re processing
@@ -224,8 +206,9 @@ if __name__ == '__main__':
     # print(num_words)
     # =================================================================
     # step3: create initial embedding matrix using embedding index and word-representation i.e number as index in matrix
+
     embedding_matrix = create_embedding_matrix(word_index,embedding_index)
-    print(np.shape(embedding_matrix))  #300001 x 200
+    print("ebedding matrix created",np.shape(embedding_matrix))  #300001 x 200
 
     #average the words matrix of each chunk to 1 x vector_dim
     essays_with_avg_chunked = avg_chunk_word_encoding(data, embedding_matrix)
@@ -239,20 +222,18 @@ if __name__ == '__main__':
     # data = data.T # 1x 40
     # lets keep a couple of thousand samples back as a test set
     X_train, X_test, y_train, y_test = train_test_split(essays_with_avg_chunked, labels, test_size=0.2)
-    print("test set size " + str(len(X_train)))
     # (10382, 5)
     # (2596, 5)
     # (10382,)
     # (2596,)
 
     X_train, X_test = np.array(X_train) , np.array(X_test)
-
     print(np.shape(X_train))
     print(np.shape(X_test))
 
-    print(len(X_test))
+    # print(len(X_test))
     # X_test, y_test = multiply_test(X_test, y_test)
-    print(len(X_test))
+    # print(len(X_test))
     # print(np.shape(y_train))
     # print(np.shape(y_test))
 
