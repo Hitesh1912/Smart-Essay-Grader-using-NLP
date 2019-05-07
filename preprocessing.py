@@ -8,50 +8,81 @@ import time
 from spellchecker import SpellChecker
 from sklearn import preprocessing
 
+
+# to use spellchecker
 spell = SpellChecker()
 
-# Function importing Dataset
+
+# Function importing Dataset from the training file
 def importdata():
-    # train_data = pd.read_csv(
-    #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
     data = pd.read_table('training_set_rel3.tsv', header=None, sep = "\t+", encoding='iso-8859-1')
-    # print(data.head())
-    # print(data.shape)
     return data.values
 
 
-# Function to split the dataset
+# Function to split the dataset into x and y
+# where x includes essay id, essay set and essay
+# and y includes the scores
 def splitdataset(data):
-    # Seperating the target variable
     x = data[1:, 0:3]
     y = data[1:, 3:np.shape(data)[1]]
-    print(np.shape(x), np.shape(y))
     return x, y
 
 
-def feature_normalization(x):
-    mu = np.mean(x,axis=0)
-    sigma = np.std(x,axis=0)
-    return mu, sigma
+# This function is used to create essay scores list
+# for each of the essay sets
+# As each essay set had separate scoring criterion
+# we had to normalize each essay set individually
+def create_score_list(essay_set, y_train):
+    idx_1 = np.array(np.where(essay_set == 1.0)[0])
+    idx_2 = np.array(np.where(essay_set == 2.0)[0])
+    idx_3 = np.array(np.where(essay_set == 3.0)[0])
+    idx_4 = np.array(np.where(essay_set == 4.0)[0])
+    idx_5 = np.array(np.where(essay_set == 5.0)[0])
+    idx_6 = np.array(np.where(essay_set == 6.0)[0])
+    idx_7 = np.array(np.where(essay_set == 7.0)[0])
+    idx_8 = np.array(np.where(essay_set == 8.0)[0])
+
+    list_y_score = list()
+    idx_1 = idx_1.reshape((np.shape(idx_1)[0]))
+    y_score1 = y_train[idx_1]
+    list_y_score.append(y_score1)
+    idx_2 = idx_2.reshape((np.shape(idx_2)[0]))
+    y_score2 = y_train[idx_2]
+    list_y_score.append(y_score2)
+    idx_3 = idx_3.reshape((np.shape(idx_3)[0]))
+    y_score3 = y_train[idx_3]
+    list_y_score.append(y_score3)
+    idx_4 = idx_4.reshape((np.shape(idx_4)[0]))
+    y_score4 = y_train[idx_4]
+    list_y_score.append(y_score4)
+    idx_5 = idx_5.reshape((np.shape(idx_5)[0]))
+    y_score5 = y_train[idx_5]
+    list_y_score.append(y_score5)
+    idx_6 = idx_6.reshape((np.shape(idx_6)[0]))
+    y_score6 = y_train[idx_6]
+    list_y_score.append(y_score6)
+    idx_7 = idx_7.reshape((np.shape(idx_7)[0]))
+    y_score7 = y_train[idx_7]
+    list_y_score.append(y_score7)
+    idx_8 = idx_8.reshape((np.shape(idx_8)[0]))
+    y_score8 = y_train[idx_8]
+    list_y_score.append(y_score8)
+    return list_y_score
 
 
-def normalization(x,mu,sigma):
-    x = np.subtract(x, mu)
-    x = np.divide(x, sigma)
-    return x
-
-
+# This function picks essay from the array
+# and appends to a list which is then
+# returned
 def preprocess_data(training_data):
-    dict_of_scores = dict()
     #split data till essay column
-    # data = splitdataset(training_data)
     essay = []
     for row in training_data:
         essay.append(row[2])
-        # print(row[2])
     return essay
 
 
+# This function creates a dictionary of essay
+# which has essays represented as a list of chunks
 def create_essay_chunks(list_of_essays):
     essay_counter = 1
     dict_of_essays = dict()
@@ -62,8 +93,6 @@ def create_essay_chunks(list_of_essays):
         list_of_chunks = list()
         list_of_sentences = essay.split(". ")
         for sentence in list_of_sentences:
-            # clean_sentence = sentence.replace(",", "").replace("!", "").replace("-", "").replace(":", "").replace(".","")
-            # spelling_corrected_sentence = correct_spelling(sentence)
             clean_sentence = clean_text(sentence)
             list_of_chunks.append(clean_sentence)
         i = 0
@@ -79,13 +108,7 @@ def create_essay_chunks(list_of_essays):
     return dict_of_essays_with_chunks
 
 
-def create_list_of_scores(y_train):
-    list_of_scores = list()
-    for row in y_train:
-        list_of_scores.append(row[2])
-    return list_of_scores
-
-
+# This function creates a dictionary of essays
 def create_dict_of_essays(x_train):
     counter = 1
     dict_of_essays = dict()
@@ -96,22 +119,9 @@ def create_dict_of_essays(x_train):
     return dict_of_essays
 
 
-def write_chunked_essay_to_file(dict_of_essays_with_chunks):
-    wf = open("dict_of_chunked_essays3.txt", "w", encoding='iso-8859-1')
-    wf.write(str(dict_of_essays_with_chunks))
-
-
-def write_scorelist_to_file(list_of_scores):
-    wf = open("list_of_scores3.txt", "w", encoding='iso-8859-1')
-    np.savetxt('list_of_scores3.txt', list_of_scores, delimiter=',', fmt='%1.3f')
-    # wf.write(str(list_of_scores))
-
-
-def write_essaydict_to_file(dict_of_essays):
-    wf = open("dict_of_essays3.txt", "w", encoding='iso-8859-1')
-    wf.write(str(dict_of_essays))
-
-
+# This function performs the cleaning of the text
+# Removes stopwords, punctuations, numerical values,
+# converts to lowercase and handles some abbreviations
 def clean_text(text):
     # Remove puncuation
     text = text.translate(string.punctuation)
@@ -128,6 +138,7 @@ def clean_text(text):
     text = text.replace('.', "")
     text = text.replace('?', '')
     text = text.replace("!", "")
+
     # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
@@ -175,9 +186,10 @@ def clean_text(text):
     return text
 
 
+# This function is used for spelling correction
 def correct_spelling(sentence):
     words = sentence.split(" ")
-    misspelled = spell.unknown(words)
+    # misspelled = spell.unknown(words)
     known_words = spell.known(words)
     unknown_words = spell.unknown(words)
     final_list = list()
@@ -187,58 +199,42 @@ def correct_spelling(sentence):
         if word in unknown_words:
             final_list.append(spell.correction(word))
     sentence = ' '.join(final_list)
-    print(sentence)
     return sentence
+
+
+# This function creates the file of dictionary of essay with chunks
+def write_chunked_essay_to_file(dict_of_essays_with_chunks):
+    wf = open("dict_of_chunked_essays.txt", "w", encoding='iso-8859-1')
+    wf.write(str(dict_of_essays_with_chunks))
+
+
+# This function creates the file of list of normalized scores
+def write_scorelist_to_file(list_of_scores):
+    np.savetxt('list_of_scores.txt', list_of_scores, delimiter=',', fmt='%1.3f')
+
+
+# This function creates the file of dictionary of essay
+def write_essaydict_to_file(dict_of_essays):
+    wf = open("dict_of_essays.txt", "w", encoding='iso-8859-1')
+    wf.write(str(dict_of_essays))
 
 
 if __name__ == '__main__':
     start_time = time.time()
+
     dict_of_scores = dict()
     dict_of_essays = dict()
+
     training_data = importdata()
     x_train, y_train = splitdataset(training_data)
     x_train = np.array(x_train)
     y_train = np.array(y_train)
     y_train = y_train[:,2]
-    # print(y_train)
-    # exit()
     essay_set = x_train[:, 1]
     essay_set = essay_set.astype(float)
-    idx_1 = np.array(np.where(essay_set == 1.0)[0])
-    idx_2 = np.array(np.where(essay_set == 2.0)[0])
-    idx_3 = np.array(np.where(essay_set == 3.0)[0])
-    idx_4 = np.array(np.where(essay_set == 4.0)[0])
-    idx_5 = np.array(np.where(essay_set == 5.0)[0])
-    idx_6 = np.array(np.where(essay_set == 6.0)[0])
-    idx_7 = np.array(np.where(essay_set == 7.0)[0])
-    idx_8 = np.array(np.where(essay_set == 8.0)[0])
 
     list_y_score = list()
-    idx_1 = idx_1.reshape((np.shape(idx_1)[0]))
-    y_score1 = y_train[idx_1]
-    list_y_score.append(y_score1)
-    idx_2 = idx_2.reshape((np.shape(idx_2)[0]))
-    y_score2 = y_train[idx_2]
-    list_y_score.append(y_score2)
-    idx_3 = idx_3.reshape((np.shape(idx_3)[0]))
-    y_score3 = y_train[idx_3]
-    list_y_score.append(y_score3)
-    idx_4 = idx_4.reshape((np.shape(idx_4)[0]))
-    y_score4 = y_train[idx_4]
-    list_y_score.append(y_score4)
-    idx_5 = idx_5.reshape((np.shape(idx_5)[0]))
-    y_score5 = y_train[idx_5]
-    list_y_score.append(y_score5)
-    idx_6 = idx_6.reshape((np.shape(idx_6)[0]))
-    y_score6 = y_train[idx_6]
-    list_y_score.append(y_score6)
-    idx_7 = idx_7.reshape((np.shape(idx_7)[0]))
-    y_score7 = y_train[idx_7]
-    list_y_score.append(y_score7)
-    idx_8 = idx_8.reshape((np.shape(idx_8)[0]))
-    y_score8 = y_train[idx_8]
-    list_y_score.append(y_score8)
-
+    list_y_score = create_score_list(essay_set, y_train)
     normalized_score_list = list()
     for y_score in list_y_score:
         y_score = y_score.reshape(-1, 1)
@@ -246,36 +242,15 @@ if __name__ == '__main__':
         normalizer = scaler.fit(y_score)
         normalized_score = scaler.transform(y_score)
         normalized_score_list.append(normalized_score)
-
     normalized_score_list = np.array(normalized_score_list)
     y_train = np.concatenate(normalized_score_list, axis=0)
     y_train = y_train.reshape(np.shape(y_train)[0])
-    # scaler = preprocessing.MinMaxScaler()
-    # normalizer = scaler.fit(y_train)
-    # normalized_score = scaler.transform(y_train)
-    # normalize all the scores in y_train
-    # normalizer = preprocessing.StandardScaler()
-    # normalized_score = normalizer.fit_transform(y_train)
-
-    essays = x_train[:, 2]
-    # print(essays[:3])
-    counter = 1
-    processed_essays = []
-
-    for essay in essays:
-        processed_essays.append(clean_text(essay))
-
-    for essay in processed_essays:
-        dict_of_essays[counter] = essay
-        counter = counter + 1
 
     list_of_essays = preprocess_data(training_data)
     dict_of_essays_with_chunks = create_essay_chunks(list_of_essays)
-    # list_of_scores = create_list_of_scores(y_train)
     dict_of_essays = create_dict_of_essays(x_train)
-    # print(dict_of_essays)
     write_chunked_essay_to_file(dict_of_essays_with_chunks)
-    # write_scorelist_to_file(y_train)
+    write_scorelist_to_file(y_train)
     write_essaydict_to_file(dict_of_essays)
     end_time = time.time()
     print("time",end_time - start_time)

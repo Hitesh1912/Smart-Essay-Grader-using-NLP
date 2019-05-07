@@ -2,10 +2,9 @@ import os
 import glob
 import nltk
 import string
-import numpy as np
-import pandas as pd
 from nltk.corpus import stopwords
 import re
+
 
 def write_to_file(filename, data):
     target_dir = r"Results/"
@@ -31,7 +30,6 @@ def normal_write_to_file(filename, data):
             fp.write('{}\n'.format(item))
 
 
-
 def fileToCollection(filename):
     contents = open(filename, 'r', encoding='utf-8')
     collection = contents.readlines()
@@ -52,7 +50,6 @@ def fileToCollection(filename):
     return collection_dict
 
 
-
 def combine_files(filename):
     result_filename = filename
     # read_files = glob.glob("gutenberg/*.txt")
@@ -71,21 +68,19 @@ def rename_files(dir):
         os.rename(dir+fname, dir+fname + ext)
 
 
-
-
 def clean_text(text):
-    ## Remove puncuation
+    # Remove puncuation
     text = text.translate(string.punctuation)
 
-    ## Convert words to lower case and split them
+    # Convert words to lower case and split them
     text = text.lower().split()
 
-    ## Remove stop words
+    # Remove stop words
     stops = set(stopwords.words("english"))
     text = [w for w in text if not w in stops and len(w) >= 3]
 
     text = " ".join(text)
-    ## Clean the text
+    # Clean the text
     text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
     text = re.sub(r"what's", "what is ", text)
     text = re.sub(r"\'s", " ", text)
@@ -114,7 +109,7 @@ def clean_text(text):
     text = re.sub(r"e - mail", "email", text)
     text = re.sub(r"j k", "jk", text)
     text = re.sub(r"\s{2,}", " ", text)
-    ## Stemming
+    # Stemming
     text = text.split()
     stemmer = nltk.SnowballStemmer('english')
     stemmed_words = [stemmer.stem(word) for word in text]

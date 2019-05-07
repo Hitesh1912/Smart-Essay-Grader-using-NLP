@@ -1,25 +1,18 @@
 from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-from utilities import  *
-import time
-from itertools import zip_longest
-from nltk import ngrams
-
-
+from utilities import *
+import pandas as pd
+import numpy as np
 
 #constants:
 embedding_dim = 300 # Len of vectors
 max_features = 30000 # this is the number of words we care about
 vocabulary_size = 5000
-no_of_chunks = 3
-# maybe???
+no_of_chunks = 2
 sequence_length = 500
 
 
 # Function importing Dataset
 def importdata():
-    # train_data = pd.read_csv(
-    #     'training_set_rel3.tsv', skipinitialspace=True, header=None)
     data = pd.read_table('vectors.txt', header=None, sep = " ")
     print(data.shape)
     return data.values
@@ -28,10 +21,6 @@ def importdata():
 def word_tokenize(essay_list, essay_data, sequence_length):
     tokenizer = Tokenizer(num_words=vocabulary_size)
     print('fitting tokenizer on whole essay')
-    # print(len(essay_data))
-    # print(len(essay_data[0]))
-    # print(essay_data[0])
-    # exit()
     tokenizer.fit_on_texts(essay_data)
     print('fitting complete')
     tokenized_essays = []
@@ -41,7 +30,6 @@ def word_tokenize(essay_list, essay_data, sequence_length):
     for essay in essay_list:
         tokenized_chunks = []
         for chunk in essay:
-            # chunk_seq = tokenizer.texts_to_sequences(chunk)
             chunk_seq = []
             for word in chunk:
                 if word in word_index_tok:
@@ -49,11 +37,7 @@ def word_tokenize(essay_list, essay_data, sequence_length):
                 else:
                     chunk_seq.append([word_index_tok['unk']])
             # tokenizer.
-            chunk_seq = [x for x in chunk_seq if x!= []]  #to remove empty in sequence
-            # print(chunk_seq)
-            # print(tokenizer.sequences_to_texts(chunk_seq))
-            # we then pad the sequences so they're all the same length (sequence_length)
-            # chunk = pad_sequences(chunk, 50, padding='post')  #check
+            chunk_seq = [x for x in chunk_seq if x!= []]  # to remove empty in sequence
             tokenized_chunks.append(chunk_seq)
         tokenized_essays.append(tokenized_chunks)
         count += 1
@@ -61,13 +45,10 @@ def word_tokenize(essay_list, essay_data, sequence_length):
 
 
 def create_embedding_matrix(word_index,embeddings_index):
-    # num_words = min(max_features, len(word_index)) + 1
     # first create a matrix of zeros, this is our embedding matrix
     embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
     # for each word in out tokenizer lets try to find that work in our w2v model
     for word, i in word_index.items():
-        # if i > max_features:
-        #     continue
         embedding_vector = embeddings_index.get(word)
         if embedding_vector is not None:
             # we found the word - add that words vector to the matrix
@@ -80,7 +61,7 @@ def create_embedding_matrix(word_index,embeddings_index):
 
 def chunks(sentences1):
     i = 0
-    sentences = [x.strip() for x in sentences1 if x]  #to remove empty in sequence
+    sentences = [x.strip() for x in sentences1 if x]  # to remove empty in sequence
     while len(sentences) < no_of_chunks:
         sentences.append(sentences[i])
         i += 1
@@ -94,14 +75,11 @@ def avg_chunk_word_encoding(essays,embedding_matrix):
     essays_list = []
     count = 0
     for essay in essays:
-        # print(count)
         chunks_list = []
         for chunk in essay:
-            # print(chunk)
             temp_word_matrix = []
             for word_idx in chunk:
                 temp_word_matrix.append(embedding_matrix[word_idx])
-            # print("word matrix", np.shape(temp_word_matrix), len(chunk))
             avg = np.mean(temp_word_matrix,axis=0)
             #flatten
             chunks_list.append(avg[0]) # 1 x 200
